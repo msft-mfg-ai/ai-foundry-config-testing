@@ -7,7 +7,7 @@ var resourceToken = toLower(uniqueString(resourceGroup().id, location))
 // --------------------------------------------------------------------------------------------------------------
 // -- Log Analytics Workspace and App Insights ------------------------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------
-module logAnalytics '../modules/monitor/loganalytics.bicep' = {
+module logAnalytics './modules/monitor/loganalytics.bicep' = {
   name: 'law'
   params: {
     newLogAnalyticsName: 'project-log-analytics'
@@ -16,7 +16,7 @@ module logAnalytics '../modules/monitor/loganalytics.bicep' = {
   }
 }
 
-module identity '../modules/iam/identity.bicep' = {
+module identity './modules/iam/identity.bicep' = {
   name: 'app-identity'
   params: {
     identityName: 'app-project-identity'
@@ -24,7 +24,7 @@ module identity '../modules/iam/identity.bicep' = {
   }
 }
 
-module foundry '../modules/ai/cognitive-services.bicep' = {
+module foundry './modules/ai/cognitive-services.bicep' = {
   name: 'foundry'
   params: {
     managedIdentityId: identity.outputs.managedIdentityId
@@ -36,7 +36,7 @@ module foundry '../modules/ai/cognitive-services.bicep' = {
   }
 }
 
-module aiProject '../modules/ai/ai-project.bicep' = {
+module aiProject './modules/ai/ai-project.bicep' = {
   name: 'ai-project'
   params: {
     foundry_name: foundry.outputs.name

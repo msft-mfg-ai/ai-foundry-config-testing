@@ -7,7 +7,7 @@ param display_name string
 param managedIdentityId string
 param tags object = {}
 @description('The resource ID of the existing Azure OpenAI resource.')
-param existingAoaiResourceId string = ''
+param existingAoaiResourceId string = '/subscriptions/1c083bf3-30ac-4804-aa81-afddc58c78dc/resourceGroups/aoai-rgp-02/providers/Microsoft.CognitiveServices/accounts/aoai-02'
 
 var byoAoaiConnectionName = 'aoaiConnection'
 
@@ -45,18 +45,19 @@ resource foundry_project 'Microsoft.CognitiveServices/accounts/projects@2025-04-
     description: project_description
     displayName: display_name
   }
+}
 
-  resource byoAoaiConnection 'connections@2025-04-01-preview' = {
-    name: byoAoaiConnectionName
-    properties: {
-      category: 'AIServices'
-      target: existingAoaiResource.properties.endpoint
-      authType: 'AAD'
-      metadata: {
-        ApiType: 'Azure'
-        ResourceId: existingAoaiResource.id
-        location: existingAoaiResource.location
-      }
+resource byoAoaiConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (!empty(existingAoaiResourceId)) {
+  name: byoAoaiConnectionName
+  parent: foundry_project
+  properties: {
+    category: 'AIServices'
+    target: existingAoaiResource.properties.endpoint
+    authType: 'AAD'
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: existingAoaiResource.id
+      location: existingAoaiResource.location
     }
   }
 }
@@ -77,7 +78,7 @@ resource projectCapabilityHost 'Microsoft.CognitiveServices/accounts/projects/ca
   parent: foundry_project
   properties: {
     capabilityHostKind: 'Agents'
-    aiServicesConnections: ['${byoAoaiConnectionName}']
+    aiServicesConnections: !empty(existingAoaiResourceId) ? ['${byoAoaiConnectionName}'] : []
   }
   dependsOn: [
     accountCapabilityHost
