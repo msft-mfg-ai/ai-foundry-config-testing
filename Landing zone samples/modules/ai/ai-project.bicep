@@ -18,7 +18,7 @@ var existingAoaiResourceIdRgName = empty(existingAoaiResourceId) ? '' : existing
 var existingAoaiResourceIdName = empty(existingAoaiResourceId) ? '' : existingAoaiResourceIdParts[8]
 
 // Get the existing Azure OpenAI resource
-resource existingAoaiResource 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = if (!empty(existingAoaiResourceId)) {
+resource existingAoaiResource 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
   scope: resourceGroup(existingAoaiResourceIdSubId, existingAoaiResourceIdRgName)
   name: existingAoaiResourceIdName
 }
