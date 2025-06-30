@@ -1,5 +1,11 @@
 # AI Foundry landing zone options
 
+## Open items
+
+- [ ] how to manage the cost of shared Azure OpenAI without APIM
+- [ ] how to manage cost of other shared resources (Cosmos, Search itp.)
+- [ ] can all the foundries share the same Agents VNET?
+
 ## Option 1 - nothing shared
  ![Nothing shared approach](./Resources/1-nothing_shared.png)
  

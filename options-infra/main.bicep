@@ -85,6 +85,6 @@ module aiProject './modules/ai/ai-project.bicep' = {
     project_description: 'AI Project Description'
     display_name: 'AI Project Display Name'
     managedIdentityId: identity.outputs.managedIdentityId
-    existingAoaiResourceId: empty(existingAoaiResourceId) ? oai.outputs.id : existingAoaiResourceId
+    existingAoaiResourceId: empty(existingAoaiResourceId) ? aiServices.outputs.id : existingAoaiResourceId
   }
 }
