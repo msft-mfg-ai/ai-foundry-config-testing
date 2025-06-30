@@ -99,41 +99,101 @@ Using Foundry with own resources:
 
 5. **Deploy the Bicep template using the parameters file:**
 
+   **Option 1 - Nothing Shared:**
    ```powershell
    az deployment group create `
      --resource-group "rg-ai-foundry-config" `
-     --template-file "main.bicep" `
-     --parameters "main.bicepparam" `
+     --template-file "main-option-1.bicep" `
+     --parameters "main.-option-1.bicepparam" `
+     --verbose
+   ```
+
+   **Option 2 - Shared AOAI:**
+   ```powershell
+   az deployment group create `
+     --resource-group "rg-ai-foundry-config" `
+     --template-file "main-option-2.bicep" `
+     --parameters "main.-option-2.bicepparam" `
+     --verbose
+   ```
+
+   **Option 3 - AI Gateway (APIM):**
+   ```powershell
+   az deployment group create `
+     --resource-group "rg-ai-foundry-config" `
+     --template-file "main-option-3.bicep" `
+     --parameters "main.-option-3.bicepparam" `
+     --verbose
+   ```
+
+   **Option 4 - Shared Azure OpenAI and Agent Service Resources:**
+   ```powershell
+   az deployment group create `
+     --resource-group "rg-ai-foundry-config" `
+     --template-file "main-option-4.bicep" `
+     --parameters "main.-option-4.bicepparam" `
      --verbose
    ```
 
 6. **(Optional) Preview what will be deployed with What-If:**
 
    ```powershell
+   # Replace with your chosen option (1-4)
    az deployment group what-if `
      --resource-group "rg-ai-foundry-config" `
-     --template-file "main.bicep" `
-     --parameters "main.bicepparam" `
+     --template-file "main-option-X.bicep" `
+     --parameters "main.-option-X.bicepparam" `
      --verbose
    ```
 
 ### Configuration
 
-The deployment uses a `main.bicepparam` file to supply parameters:
+Each deployment option uses its own parameter file:
 
+#### Option 1 - Nothing Shared (`main.-option-1.bicepparam`)
 ```bicep-params
-using 'main.bicep'
+using 'main-option-1.bicep'
 
-// Parameters for the main Bicep template
+// Parameters for Option 1 - Everything deployed fresh
+param location = 'eastus2'
+param existingAoaiResourceId = ''
+```
+
+#### Option 2 - Shared AOAI (`main.-option-2.bicepparam`)
+```bicep-params
+using 'main-option-2.bicep'
+
+// Parameters for Option 2 - Shared Azure OpenAI
 param location = 'eastus2'
 param existingAoaiResourceId = '/subscriptions/1c083bf3-30ac-4804-aa81-afddc58c78dc/resourceGroups/aoai-rgp-02/providers/Microsoft.CognitiveServices/accounts/aoai-02'
 ```
 
+#### Option 3 - AI Gateway/APIM (`main.-option-3.bicepparam`)
+```bicep-params
+using 'main-option-3.bicep'
+
+// Parameters for Option 3 - AI Gateway with APIM
+param location = 'eastus2'
+param existingAoaiResourceId = '/subscriptions/1c083bf3-30ac-4804-aa81-afddc58c78dc/resourceGroups/aoai-rgp-02/providers/Microsoft.CognitiveServices/accounts/aoai-02'
+```
+
+#### Option 4 - Shared Resources (`main.-option-4.bicepparam`)
+```bicep-params
+using 'main-option-4.bicep'
+
+// Parameters for Option 4 - Shared AOAI + Agent Service resources
+param location = 'eastus2'
+param existingAoaiResourceId = '/subscriptions/1c083bf3-30ac-4804-aa81-afddc58c78dc/resourceGroups/aoai-rgp-02/providers/Microsoft.CognitiveServices/accounts/aoai-03'
+```
+
+**Configuration Notes:**
 * **Location**: Set to `eastus2` - you can change this to your preferred Azure region that supports AI services
-* **Existing AOAI Resource**: Configured to use an existing Azure OpenAI resource (`aoai-02` in resource group `aoai-rgp-02`). This implements **Option 2 - Shared AOAI** architecture where each team deploys their own AI Foundry with a connection to shared Azure OpenAI
+* **Existing AOAI Resource**: 
+  - **Option 1**: Leave empty (`''`) to create all new resources
+  - **Options 2-4**: Provide the full resource ID of your existing Azure OpenAI resource
 
 > [!IMPORTANT]
-> When using an existing Azure OpenAI resource (Option 2), ensure that:
+> When using an existing Azure OpenAI resource (Options 2-4), ensure that:
 >
 > * The Azure OpenAI resource and AI Foundry account are deployed in the same region
 > * You have appropriate permissions to access the existing Azure OpenAI resource
@@ -141,21 +201,14 @@ param existingAoaiResourceId = '/subscriptions/1c083bf3-30ac-4804-aa81-afddc58c7
 
 ### Alternative Deployment Methods
 
-**Deploy with inline parameters (without the .bicepparam file):**
+**Deploy with inline parameters (example for Option 2):**
 
 ```powershell
 az deployment group create `
   --resource-group "rg-ai-foundry-config" `
-  --template-file "main.bicep" `
+  --template-file "main-option-2.bicep" `
   --parameters location="eastus2" existingAoaiResourceId="/subscriptions/1c083bf3-30ac-4804-aa81-afddc58c78dc/resourceGroups/aoai-rgp-02/providers/Microsoft.CognitiveServices/accounts/aoai-02" `
   --verbose
-```
-
-**To deploy without an existing Azure OpenAI resource (Option 1 - Nothing Shared):**
-
-```bicep-params
-param location = 'eastus2'
-param existingAoaiResourceId = ''
 ```
 
 ### Troubleshooting
