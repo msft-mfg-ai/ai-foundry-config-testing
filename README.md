@@ -47,7 +47,11 @@ Using Foundry with own resources:
 > Your existing Azure Cosmos DB for NoSQL account used in a standard setup must have a total throughput limit of at least 3000 RU/s. Both provisioned throughput and serverless are supported.
 > Three containers will be provisioned in your existing Cosmos DB account, each requiring 1000 RU/s
 
- ![Shared Foundry Connections](./Resources/4-shared-foundry-connections.png)
+> [!NOTE]
+> Currently there's no way to manage cost of shared resources (Cosmos, Search) in order to execute chargback to application teams.
+
+![Shared Foundry Connections](./Resources/4-shared-foundry-connections.png)
+
 
  ## Agent VNET
 
