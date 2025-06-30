@@ -5,13 +5,6 @@ param location string = resourceGroup().location
 param tags object = {}
 param appInsightsName string
 
-//param deployments array = []
-@description('The Kind of AI Service, can be "OpenAI" or "AIServices"')
-@allowed([
-  'OpenAI'
-  'AIServices'
-])
-param kind string = 'AIServices'
 param publicNetworkAccess string = ''
 param sku object = {
   name: 'S0'
@@ -68,11 +61,12 @@ resource existingAccount 'Microsoft.CognitiveServices/accounts@2025-04-01-previe
 }
 
 // --------------------------------------------------------------------------------------------------------------
+// Foundry is always of type AIServices
 resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = if (!useExistingService) {
   name: name
   location: location
   tags: tags
-  kind: kind
+  kind: 'AIServices'
 
   identity: {
     type: 'UserAssigned'
@@ -156,4 +150,3 @@ output cognitiveServicesKeySecretName string = cognitiveServicesKeySecretName
 
 output textEmbeddings array = textEmbeddings
 output chatGpt_Standard object = chatGpt_Standard
-output kind string = kind
