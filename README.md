@@ -3,8 +3,11 @@
 ## Open items
 
 - [ ] how to manage the cost of shared Azure OpenAI without APIM
+  - [ ] should each foundry use it's own Cosmos DB since it's PAYGO ?
+  - [ ] confirm when APIM for AI Foundry will be available in private preview / GA.
 - [ ] how to manage cost of other shared resources (Cosmos, Search itp.)
 - [ ] can all the foundries share the same Agents VNET?
+- [ ] what IAM roles to apply for Devs vs. Admins? Devs should not be able to deploy models.
 
 ## Option 1 - nothing shared
  ![Nothing shared approach](./Resources/1-nothing_shared.png)
