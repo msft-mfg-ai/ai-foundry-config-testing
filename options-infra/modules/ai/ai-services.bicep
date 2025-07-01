@@ -33,7 +33,8 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = {
     }
   }
   properties: {
-    // required to work in AI Foundry
+    // set to false to disable AI Foundry project management
+    allowProjectManagement: false
     publicNetworkAccess: publicNetworkAccess
     networkAcls: {
       bypass: 'AzureServices'

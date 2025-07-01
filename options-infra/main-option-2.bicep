@@ -1,6 +1,12 @@
 param location string = resourceGroup().location
-@description('The resource ID of the existing Azure OpenAI resource.')
-param existingAoaiResourceId string = ''
+@description('The resource ID of the existing Ai resource - Azure Open AI, AI Services or AI Foundry.')
+param existingAiResourceId string = ''
+@description('The Kind of AI Service, can be "AzureOpenAI" or "AIServices". For AI Foundry use AI Services')
+@allowed([
+  'AzureOpenAI'
+  'AIServices'
+])
+param existingAiResourceKind string = 'AzureOpenAI' // Can be 'AzureOpenAI' or 'AIServices'
 
 var resourceToken = toLower(uniqueString(resourceGroup().id, location))
 
@@ -76,15 +82,44 @@ module foundry './modules/ai/ai-foundry.bicep' = {
   }
 }
 
-module aiProject './modules/ai/ai-project.bicep' = {
+module aiProject './modules/ai/ai-project.bicep' = if (!empty(existingAiResourceId)) {
   name: 'ai-project'
   params: {
     foundry_name: foundry.outputs.name
     location: location
-    project_name: 'ai-project-${resourceToken}'
-    project_description: 'AI Project Description'
-    display_name: 'AI Project Display Name'
+    project_name: 'ai-project1'
+    project_description: 'AI Project with existing AI resource ${existingAiResourceId}'
+    display_name: 'AI Project with ${existingAiResourceKind}'
     managedIdentityId: identity.outputs.managedIdentityId
-    existingAoaiResourceId: empty(existingAoaiResourceId) ? aiServices.outputs.id : existingAoaiResourceId
+    existingAiResourceId: existingAiResourceId
+    existingAiKind: existingAiResourceKind
+  }
+}
+
+module aiProject2 './modules/ai/ai-project.bicep' = {
+  name: 'ai-project2'
+  params: {
+    foundry_name: foundry.outputs.name
+    location: location
+    project_name: 'ai-project2'
+    project_description: 'AI Project with existing Azure OpenAI'
+    display_name: 'AI Project with Azure OpenAI'
+    managedIdentityId: identity.outputs.managedIdentityId
+    existingAiResourceId: oai.outputs.id
+    existingAiKind: 'AzureOpenAI' // For AI Foundry use AI Services
+  }
+}
+
+module aiProject3 './modules/ai/ai-project.bicep' = {
+  name: 'ai-project3'
+  params: {
+    foundry_name: foundry.outputs.name
+    location: location
+    project_name: 'ai-project3'
+    project_description: 'AI Project with existing AI Services'
+    display_name: 'AI Project with Azure AI Services'
+    managedIdentityId: identity.outputs.managedIdentityId
+    existingAiResourceId: aiServices.outputs.id
+    existingAiKind: 'AIServices'
   }
 }

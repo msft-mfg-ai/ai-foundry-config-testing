@@ -6,21 +6,27 @@ param project_description string
 param display_name string
 param managedIdentityId string
 param tags object = {}
-@description('The resource ID of the existing Azure OpenAI resource.')
-param existingAoaiResourceId string = '/subscriptions/1c083bf3-30ac-4804-aa81-afddc58c78dc/resourceGroups/aoai-rgp-02/providers/Microsoft.CognitiveServices/accounts/aoai-02'
+@description('The resource ID of the existing AI resource.')
+param existingAiResourceId string
+@description('The Kind of AI Service, can be "AzureOpenAI" or "AIServices"')
+@allowed([
+  'AzureOpenAI'
+  'AIServices'
+])
+param existingAiKind string = 'AIServices'
 
-var byoAoaiConnectionName = 'aoaiConnection'
+var byoAiConnectionName = 'aiConnection'
 
 // get subid, resource group name and resource name from the existing resource id
-var existingAoaiResourceIdParts = split(existingAoaiResourceId, '/')
-var existingAoaiResourceIdSubId = empty(existingAoaiResourceId) ? '' : existingAoaiResourceIdParts[2]
-var existingAoaiResourceIdRgName = empty(existingAoaiResourceId) ? '' : existingAoaiResourceIdParts[4]
-var existingAoaiResourceIdName = empty(existingAoaiResourceId) ? '' : existingAoaiResourceIdParts[8]
+var existingAiResourceIdParts = split(existingAiResourceId, '/')
+var existingAiResourceIdSubId = empty(existingAiResourceId) ? '' : existingAiResourceIdParts[2]
+var existingAiResourceIdRgName = empty(existingAiResourceId) ? '' : existingAiResourceIdParts[4]
+var existingAiResourceIdName = empty(existingAiResourceId) ? '' : existingAiResourceIdParts[8]
 
-// Get the existing Azure OpenAI resource
-resource existingAoaiResource 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
-  scope: resourceGroup(existingAoaiResourceIdSubId, existingAoaiResourceIdRgName)
-  name: existingAoaiResourceIdName
+// Get the existing Azure AI resource
+resource existingAiResource 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
+  scope: resourceGroup(existingAiResourceIdSubId, existingAiResourceIdRgName)
+  name: existingAiResourceIdName
 }
 
 #disable-next-line BCP081
@@ -47,17 +53,32 @@ resource foundry_project 'Microsoft.CognitiveServices/accounts/projects@2025-04-
   }
 }
 
-resource byoAoaiConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (!empty(existingAoaiResourceId)) {
-  name: byoAoaiConnectionName
-  parent: foundry_project
+resource byoAoaiConnectionFoundry 'Microsoft.CognitiveServices/accounts/connections@2025-04-01-preview' = if (!empty(existingAiResourceId)) {
+  name: '${byoAiConnectionName}-foundry-by-${project_name}'
+  parent: foundry
   properties: {
-    category: 'AIServices'
-    target: existingAoaiResource.properties.endpoint
+    category: existingAiKind
+    target: existingAiResource.properties.endpoint
     authType: 'AAD'
     metadata: {
       ApiType: 'Azure'
-      ResourceId: existingAoaiResource.id
-      location: existingAoaiResource.location
+      ResourceId: existingAiResource.id
+      location: existingAiResource.location
+    }
+  }
+}
+
+resource byoAoaiConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (!empty(existingAiResourceId)) {
+  name: '${byoAiConnectionName}-project-${project_name}'
+  parent: foundry_project
+  properties: {
+    category: existingAiKind
+    target: existingAiResource.properties.endpoint
+    authType: 'AAD'
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: existingAiResource.id
+      location: existingAiResource.location
     }
   }
 }
@@ -78,7 +99,7 @@ resource projectCapabilityHost 'Microsoft.CognitiveServices/accounts/projects/ca
   parent: foundry_project
   properties: {
     capabilityHostKind: 'Agents'
-    aiServicesConnections: !empty(existingAoaiResourceId) ? ['${byoAoaiConnectionName}'] : []
+    aiServicesConnections: !empty(existingAiResourceId) ? ['${byoAiConnectionName}-project-${project_name}'] : []
   }
   dependsOn: [
     accountCapabilityHost

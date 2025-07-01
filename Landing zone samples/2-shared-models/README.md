@@ -2,6 +2,10 @@
 
 Deploy AI Foundry with a link to another AI Foundry in the same region but different subscription hosting AI Models.
 
+## Infrastructure
+
+Deployed using [Bicep](../../options-infra/main-option-2.bicep).
+
 ## Results
 
 Chat playground works with external AI Foundry hosting models.
