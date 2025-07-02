@@ -9,6 +9,9 @@
 - [ ] can all the foundries share the same Agents VNET?
 - [ ] what IAM roles to apply for Devs vs. Admins? Devs should not be able to deploy models.
 
+> [!NOTE]
+> Shared AI resource has to be of kind `AIServices` in order to support all models not only OpenAI.
+
 ## Option 1 - nothing shared
  ![Nothing shared approach](./Resources/1-nothing_shared.png)
  
