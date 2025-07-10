@@ -42,32 +42,51 @@ module vnet 'modules/networking/vnet.bicep' = {
   }
 }
 
-module dnsZones './modules/networking/dns-zones.bicep' = {
-  name: 'dns-zones'
+module ai_dependencies 'modules/ai-dependencies/standard-dependent-resources.bicep' = {
   params: {
-    vnetName: vnet.outputs.virtualNetworkName
-    suffix: resourceToken
-    vnetResourceGroupName: vnet.outputs.virtualNetworkResourceGroup
-    vnetSubscriptionId: vnet.outputs.virtualNetworkSubscriptionId
-  }
-}
-
-// TODO: is PE required when using trusted services?
-// https://learn.microsoft.com/en-us/azure/ai-services/cognitive-services-virtual-networks?tabs=portal&WT.mc_id=Portal-Microsoft_Azure_ProjectOxford#grant-access-to-trusted-azure-services-for-azure-openai
-// Microsoft.Search and Microsoft.CognitiveServices are supported by trusted services
-
-module foundryPe 'modules/networking/private-endpoint.bicep' = {
-  name: 'foundry-pe'
-  params: {
-    privateEndpointName: 'foundry-pe-${resourceToken}'
     location: location
-    subnetId: vnet.outputs.peSubnetId
-    targetResourceId: aiServices.outputs.id
-    groupIds: [ 'account' ]
-    zoneConfigs: [
-      { name: '${aiServicesName}-dns-aiserv-config',  privateDnsZoneId: dnsZones.outputs.aiServicesPrivateDnsZoneId }
-      { name: '${aiServicesName}-dns-openai-config',  privateDnsZoneId: dnsZones.outputs.openAiPrivateDnsZoneId } 
-      { name: '${aiServicesName}-dns-cogserv-config', privateDnsZoneId: dnsZones.outputs.cognitiveServicesPrivateDnsZoneId } 
-    ]
+    azureStorageName: 'projstorage${resourceToken}'
+    aiSearchName: 'project-search-${resourceToken}'
+    cosmosDBName: 'project-cosmosdb-${resourceToken}'
+
+    // AI Search Service parameters
+    aiSearchResourceId: ''
+    aiSearchExists: false
+
+    // Storage Account
+    azureStorageAccountResourceId: ''
+    azureStorageExists: false
+
+    // Cosmos DB Account
+    cosmosDBResourceId: ''
+    cosmosDBExists: false
   }
 }
+
+// Private Endpoint and DNS Configuration
+// This module sets up private network access for all Azure services:
+// 1. Creates private endpoints in the specified subnet
+// 2. Sets up private DNS zones for each service
+// 3. Links private DNS zones to the VNet for name resolution
+// 4. Configures network policies to restrict access to private endpoints only
+module privateEndpointAndDNS 'modules/networking/private-endpoint-and-dns.bicep' = {
+    name: 'private-endpoints-and-dns'
+    params: {
+      aiAccountName: aiServices.outputs.name    // AI Services to secure
+      aiSearchName: ai_dependencies.outputs.aiSearchName       // AI Search to secure
+      storageName: ai_dependencies.outputs.azureStorageName        // Storage to secure
+      cosmosDBName: ai_dependencies.outputs.cosmosDBName
+      vnetName: vnet.outputs.virtualNetworkName    // VNet containing subnets
+      peSubnetName: vnet.outputs.peSubnetName        // Subnet for private endpoints
+      suffix: resourceToken                                    // Unique identifier
+      vnetResourceGroupName: vnet.outputs.virtualNetworkResourceGroup
+      vnetSubscriptionId: vnet.outputs.virtualNetworkSubscriptionId // Subscription ID for the VNet
+      cosmosDBSubscriptionId: ai_dependencies.outputs.cosmosDBSubscriptionId // Subscription ID for Cosmos DB
+      cosmosDBResourceGroupName: ai_dependencies.outputs.cosmosDBResourceGroupName // Resource Group for Cosmos DB
+      aiSearchSubscriptionId: ai_dependencies.outputs.aiSearchServiceSubscriptionId // Subscription ID for AI Search Service
+      aiSearchResourceGroupName: ai_dependencies.outputs.aiSearchServiceResourceGroupName // Resource Group for AI Search Service
+      storageAccountResourceGroupName: ai_dependencies.outputs.azureStorageResourceGroupName // Resource Group for Storage Account
+      storageAccountSubscriptionId: ai_dependencies.outputs.azureStorageSubscriptionId // Subscription ID for Storage Account
+    }
+  }
+

@@ -4,7 +4,7 @@ param name string = ''
 param location string = resourceGroup().location
 param tags object = {}
 param agentSubnetId string = ''
-param appInsightsName string
+param appInsightsName string = ''
 @allowed([
   'Disabled'
   'Enabled'
@@ -107,25 +107,25 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = if 
   }
   sku: sku
 
-  // // Creates the Azure Foundry connection Application Insights
-  // resource connection 'connections@2025-04-01-preview' = {
-  //   name: 'applicationInsights'
-  //   properties: {
-  //     category: 'AppInsights'
-  //     //group: 'ServicesAndApps'  // read-only...
-  //     target: appInsights.id
-  //     authType: 'ApiKey'
-  //     isSharedToAll: true
-  //     //isDefault: true  // not valid property
-  //     credentials: {
-  //       key: appInsights.properties.InstrumentationKey
-  //     }
-  //     metadata: {
-  //       ApiType: 'Azure'
-  //       ResourceId: appInsights.id
-  //     }
-  //   }
-  // }
+  // Creates the Azure Foundry connection Application Insights
+  resource connection 'connections@2025-04-01-preview' = if (!empty(appInsightsName)) {
+    name: 'applicationInsights'
+    properties: {
+      category: 'AppInsights'
+      //group: 'ServicesAndApps'  // read-only...
+      target: appInsights.id
+      authType: 'ApiKey'
+      isSharedToAll: true
+      //isDefault: true  // not valid property
+      credentials: {
+        key: appInsights.properties.InstrumentationKey
+      }
+      metadata: {
+        ApiType: 'Azure'
+        ResourceId: appInsights.id
+      }
+    }
+  }
 }
 
 @batchSize(1)
@@ -143,7 +143,7 @@ resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2025-04-01
   }
 ]
 
-resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = {
+resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = if (!empty(appInsightsName)) {
   name: appInsightsName
   scope: resourceGroup()
 }
