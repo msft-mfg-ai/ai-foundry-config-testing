@@ -1,8 +1,7 @@
-
 param foundry_name string
 param location string
 param project_name string
-param project_description string  
+param project_description string
 param display_name string
 param managedIdentityId string
 param tags object = {}
@@ -15,7 +14,20 @@ param existingAiResourceId string
 ])
 param existingAiKind string = 'AIServices'
 
-var byoAiConnectionName = 'aiConnection'
+param aiSearchName string = ''
+param aiSearchServiceResourceGroupName string = ''
+param aiSearchServiceSubscriptionId string = ''
+
+param cosmosDBName string = ''
+param cosmosDBSubscriptionId string = ''
+param cosmosDBResourceGroupName string = ''
+
+param azureStorageName string = ''
+param azureStorageSubscriptionId string = ''
+param azureStorageResourceGroupName string = ''
+
+var byoAiProjectConnectionName = 'aiConnection-project-for-${project_name}'
+var byoAiFoundryConnectionName = 'aiConnection-foundry-for-${foundry_name}'
 
 // get subid, resource group name and resource name from the existing resource id
 var existingAiResourceIdParts = split(existingAiResourceId, '/')
@@ -33,6 +45,19 @@ resource existingAiResource 'Microsoft.CognitiveServices/accounts@2023-05-01' ex
 resource foundry 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
   name: foundry_name
   scope: resourceGroup()
+}
+
+resource searchService 'Microsoft.Search/searchServices@2024-06-01-preview' existing = if (!empty(aiSearchName)) {
+  name: aiSearchName
+  scope: resourceGroup(aiSearchServiceSubscriptionId, aiSearchServiceResourceGroupName)
+}
+resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2024-12-01-preview' existing = if (!empty(cosmosDBName)) {
+  name: cosmosDBName
+  scope: resourceGroup(cosmosDBSubscriptionId, cosmosDBResourceGroupName)
+}
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' existing = if (!empty(azureStorageName)) {
+  name: azureStorageName
+  scope: resourceGroup(azureStorageSubscriptionId, azureStorageResourceGroupName)
 }
 
 #disable-next-line BCP081
@@ -54,7 +79,7 @@ resource foundry_project 'Microsoft.CognitiveServices/accounts/projects@2025-04-
 }
 
 resource byoAoaiConnectionFoundry 'Microsoft.CognitiveServices/accounts/connections@2025-04-01-preview' = if (!empty(existingAiResourceId)) {
-  name: '${byoAiConnectionName}-foundry-by-${project_name}'
+  name: byoAiFoundryConnectionName
   parent: foundry
   properties: {
     category: existingAiKind
@@ -68,20 +93,20 @@ resource byoAoaiConnectionFoundry 'Microsoft.CognitiveServices/accounts/connecti
   }
 }
 
-resource byoAoaiConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (!empty(existingAiResourceId)) {
-  name: '${byoAiConnectionName}-project-${project_name}'
-  parent: foundry_project
-  properties: {
-    category: existingAiKind
-    target: existingAiResource.properties.endpoint
-    authType: 'AAD'
-    metadata: {
-      ApiType: 'Azure'
-      ResourceId: existingAiResource.id
-      location: existingAiResource.location
-    }
-  }
-}
+// resource byoAoaiConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (!empty(existingAiResourceId)) {
+//   name: byoAiProjectConnectionName
+//   parent: foundry_project
+//   properties: {
+//     category: existingAiKind
+//     target: existingAiResource.properties.endpoint
+//     authType: 'AAD'
+//     metadata: {
+//       ApiType: 'Azure'
+//       ResourceId: existingAiResource.id
+//       location: existingAiResource.location
+//     }
+//   }
+// }
 
 resource accountCapabilityHost 'Microsoft.CognitiveServices/accounts/capabilityHosts@2025-04-01-preview' = {
   name: '${foundry.name}-capHost'
@@ -94,19 +119,60 @@ resource accountCapabilityHost 'Microsoft.CognitiveServices/accounts/capabilityH
   ]
 }
 
-resource projectCapabilityHost 'Microsoft.CognitiveServices/accounts/projects/capabilityHosts@2025-04-01-preview' = {
-  name: '${project_name}-capHost'
+resource project_connection_cosmosdb_account 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (!empty(cosmosDBName)) {
+  name: cosmosDBName
   parent: foundry_project
   properties: {
-    capabilityHostKind: 'Agents'
-    aiServicesConnections: !empty(existingAiResourceId) ? ['${byoAiConnectionName}-project-${project_name}'] : []
+    category: 'CosmosDB'
+    target: cosmosDBAccount.properties.documentEndpoint
+    authType: 'AAD'
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: cosmosDBAccount.id
+      location: cosmosDBAccount.location
+    }
   }
-  dependsOn: [
-    accountCapabilityHost
-  ]
+}
+
+resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (!empty(azureStorageName)) {
+  name: azureStorageName
+  parent: foundry_project
+  properties: {
+    category: 'AzureStorageAccount'
+    target: storageAccount.properties.primaryEndpoints.blob
+    authType: 'AAD'
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: storageAccount.id
+      location: storageAccount.location
+    }
+  }
+}
+
+resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (!empty(aiSearchName)) {
+  name: aiSearchName
+  parent: foundry_project
+  properties: {
+    category: 'CognitiveSearch'
+    target: 'https://${aiSearchName}.search.windows.net'
+    authType: 'AAD'
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: searchService.id
+      location: searchService.location
+    }
+  }
 }
 
 output project_name string = foundry_project.name
 output project_id string = foundry_project.id
 output projectPrincipalId string = managedIdentityId
 output projectConnectionString string = 'https://${foundry_name}.services.ai.azure.com/api/projects/${project_name}'
+
+// return the BYO connection names
+output cosmosDBConnection string = cosmosDBName
+output azureStorageConnection string = azureStorageName
+output aiSearchConnection string = aiSearchName
+
+#disable-next-line BCP053
+output projectWorkspaceId string = foundry_project.properties.internalId

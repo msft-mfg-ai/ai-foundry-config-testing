@@ -1,8 +1,13 @@
 param name string = ''
 param location string = resourceGroup().location
 param tags object = {}
+param agentSubnetId string = ''
 
-param publicNetworkAccess string = ''
+@allowed([
+  'Disabled'
+  'Enabled'
+])
+param publicNetworkAccess string = 'Enabled'
 param sku object = {
   name: 'S0'
 }
@@ -18,7 +23,6 @@ param deployments array = []
 var resourceGroupName = resourceGroup().name
 var cognitiveServicesKeySecretName = 'ai-services-key'
 
-
 // --------------------------------------------------------------------------------------------------------------
 resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = {
   name: name
@@ -33,13 +37,13 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = {
     }
   }
   properties: {
-    // set to false to disable AI Foundry project management
+    // set to false to disable AI Foundry project management - this doesn't seem to make any difference
     allowProjectManagement: false
     publicNetworkAccess: publicNetworkAccess
     networkAcls: {
       bypass: 'AzureServices'
 
-      defaultAction: empty(myIpAddress) ? 'Allow' : 'Deny'
+      defaultAction: 'Allow'
       ipRules: empty(myIpAddress)
         ? []
         : [
@@ -47,7 +51,17 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = {
               value: myIpAddress
             }
           ]
+      virtualNetworkRules: []
     }
+    networkInjections: (!empty(agentSubnetId)
+      ? [
+          {
+            scenario: 'agent'
+            subnetArmId: agentSubnetId
+            useMicrosoftManagedNetwork: false
+          }
+        ]
+      : null)
     customSubDomainName: toLower('${(name)}')
   }
   sku: sku

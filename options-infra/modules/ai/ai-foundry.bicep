@@ -3,9 +3,13 @@ param existing_CogServices_RG_Name string = ''
 param name string = ''
 param location string = resourceGroup().location
 param tags object = {}
+param agentSubnetId string = ''
 param appInsightsName string
-
-param publicNetworkAccess string = ''
+@allowed([
+  'Disabled'
+  'Enabled'
+])
+param publicNetworkAccess string = 'Enabled'
 param sku object = {
   name: 'S0'
 }
@@ -24,35 +28,34 @@ param deployModels bool = true
 var resourceGroupName = resourceGroup().name
 var useExistingService = !empty(existing_CogServices_Name)
 var cognitiveServicesKeySecretName = 'cognitive-services-key'
-var deployments = deployModels ? union(
-  textEmbeddings,
-  [
-    {
-      name: chatGpt_Standard.DeploymentName
-      model: {
-        format: 'OpenAI'
-        name: chatGpt_Standard.ModelName
-        version: chatGpt_Standard.ModelVersion
+var deployments = deployModels
+  ? union(textEmbeddings, [
+      {
+        name: chatGpt_Standard.DeploymentName
+        model: {
+          format: 'OpenAI'
+          name: chatGpt_Standard.ModelName
+          version: chatGpt_Standard.ModelVersion
+        }
+        sku: chatGpt_Standard.?sku ?? {
+          name: 'Standard'
+          capacity: chatGpt_Standard.DeploymentCapacity
+        }
       }
-      sku: chatGpt_Standard.?sku ?? {
-        name: 'Standard'
-        capacity: chatGpt_Standard.DeploymentCapacity
+      {
+        name: chatGpt_Premium.DeploymentName
+        model: {
+          format: 'OpenAI'
+          name: chatGpt_Premium.ModelName
+          version: chatGpt_Premium.ModelVersion
+        }
+        sku: chatGpt_Premium.?sku ?? {
+          name: 'Standard'
+          capacity: chatGpt_Premium.DeploymentCapacity
+        }
       }
-    }
-    {
-      name: chatGpt_Premium.DeploymentName
-      model: {
-        format: 'OpenAI'
-        name: chatGpt_Premium.ModelName
-        version: chatGpt_Premium.ModelVersion
-      }
-      sku: chatGpt_Premium.?sku ?? {
-        name: 'Standard'
-        capacity: chatGpt_Premium.DeploymentCapacity
-      }
-    }
-  ]
-) : []
+    ])
+  : []
 
 // --------------------------------------------------------------------------------------------------------------
 resource existingAccount 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = if (useExistingService) {
@@ -76,12 +79,12 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = if 
   }
   properties: {
     // required to work in AI Foundry
-    allowProjectManagement: true 
+    allowProjectManagement: true
     publicNetworkAccess: publicNetworkAccess
     networkAcls: {
       bypass: 'AzureServices'
 
-      defaultAction: empty(myIpAddress) ? 'Allow' : 'Deny'
+      defaultAction: 'Allow'
       ipRules: empty(myIpAddress)
         ? []
         : [
@@ -89,10 +92,40 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = if 
               value: myIpAddress
             }
           ]
+      virtualNetworkRules: []
     }
+    networkInjections: (!empty(agentSubnetId)
+      ? [
+          {
+            scenario: 'agent'
+            subnetArmId: agentSubnetId
+            useMicrosoftManagedNetwork: false
+          }
+        ]
+      : null)
     customSubDomainName: toLower('${(name)}')
   }
   sku: sku
+
+  // // Creates the Azure Foundry connection Application Insights
+  // resource connection 'connections@2025-04-01-preview' = {
+  //   name: 'applicationInsights'
+  //   properties: {
+  //     category: 'AppInsights'
+  //     //group: 'ServicesAndApps'  // read-only...
+  //     target: appInsights.id
+  //     authType: 'ApiKey'
+  //     isSharedToAll: true
+  //     //isDefault: true  // not valid property
+  //     credentials: {
+  //       key: appInsights.properties.InstrumentationKey
+  //     }
+  //     metadata: {
+  //       ApiType: 'Azure'
+  //       ResourceId: appInsights.id
+  //     }
+  //   }
+  // }
 }
 
 @batchSize(1)
@@ -110,31 +143,9 @@ resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2025-04-01
   }
 ]
 
-
 resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = {
   name: appInsightsName
   scope: resourceGroup()
-}
-
-// Creates the Azure Foundry connection Application Insights
-resource connection 'Microsoft.CognitiveServices/accounts/connections@2025-04-01-preview' = {
-  name: 'applicationInsights'
-  parent: account
-  properties: {
-    category: 'AppInsights'
-    //group: 'ServicesAndApps'  // read-only...
-    target: appInsights.id
-    authType: 'ApiKey'
-    isSharedToAll: true
-    //isDefault: true  // not valid property
-    credentials: {
-      key: appInsights.properties.InstrumentationKey
-    }
-    metadata: {
-      ApiType: 'Azure'
-      ResourceId: appInsights.id
-    }
-  }
 }
 
 // --------------------------------------------------------------------------------------------------------------
@@ -142,9 +153,7 @@ resource connection 'Microsoft.CognitiveServices/accounts/connections@2025-04-01
 // --------------------------------------------------------------------------------------------------------------
 output id string = useExistingService ? existingAccount.id : account.id
 output name string = useExistingService ? existingAccount.name : account.name
-output endpoint string = useExistingService
-  ? existingAccount.properties.endpoint
-  : account.properties.endpoint
+output endpoint string = useExistingService ? existingAccount.properties.endpoint : account.properties.endpoint
 output resourceGroupName string = useExistingService ? existing_CogServices_RG_Name : resourceGroupName
 output cognitiveServicesKeySecretName string = cognitiveServicesKeySecretName
 

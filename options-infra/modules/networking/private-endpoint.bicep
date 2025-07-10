@@ -13,11 +13,10 @@ param targetResourceId string
 @description('An array of group IDs of the service type that they private endpoint will be connect to')
 param groupIds array
 
-@description('The resource ID of the private DNS zone for this resource')
-param dnsZoneId string = ''
-
 @description('The tags to associate with the private endpoint')
 param tags object = {}
+
+param zoneConfigs array = []
 
 var nicName = '${privateEndpointName}-nic'
 
@@ -42,18 +41,16 @@ resource pe 'Microsoft.Network/privateEndpoints@2023-06-01' = {
   }
 }
 
-resource peDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-06-01' = if (dnsZoneId != '') {
+resource peDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-06-01' = if (length(zoneConfigs) > 0) {
   name: '${privateEndpointName}-dns-group'
   parent: pe
   properties: {
-    privateDnsZoneConfigs: [
-      {
-        name: 'default'
-        properties: {
-          privateDnsZoneId: dnsZoneId
-        }
+    privateDnsZoneConfigs: [for z in zoneConfigs: {
+      name: z.name
+      properties: {
+        privateDnsZoneId: z.privateDnsZoneId
       }
-    ]
+    }]
   }
 }
 
