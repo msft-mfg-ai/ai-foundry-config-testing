@@ -22,6 +22,10 @@ resource existingLogAnalyticsResource 'Microsoft.OperationalInsights/workspaces@
   scope: resourceGroup(existingLogAnalyticsRgName)
 }
 
+resource existingApplicationInsightsResource 'Microsoft.Insights/components@2020-02-02' existing = if (useExistingAppInsights) {
+  name: existingApplicationInsightsName
+}
+
 resource newLogAnalyticsResource 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if (!useExistingLogAnalytics){
   name: newLogAnalyticsName
   location: location
@@ -39,9 +43,7 @@ resource newLogAnalyticsResource 'Microsoft.OperationalInsights/workspaces@2023-
   })
 }
 
-resource existingApplicationInsightsResource 'Microsoft.Insights/components@2020-02-02' existing = if (useExistingAppInsights) {
-  name: existingApplicationInsightsName
-}
+
 resource newApplicationInsightsResource 'Microsoft.Insights/components@2020-02-02' = if (!useExistingAppInsights) {
   name: newApplicationInsightsName
   location: location
