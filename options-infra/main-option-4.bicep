@@ -94,13 +94,13 @@ module foundry './modules/ai/ai-foundry.bicep' = {
   }
 }
 
-// module foundry_insights './modules/ai/foundry-insights.bicep' = {
-//   name: 'foundry-insights'
-//   params: {
-//     foundry_name: foundry.outputs.name
-//     appInsightsName: logAnalytics.outputs.applicationInsightsName
-//   }
-// }
+module foundry_insights './modules/ai/foundry-insights.bicep' = {
+  name: 'foundry-insights'
+  params: {
+    foundry_name: foundry.outputs.name
+    appInsightsName: logAnalytics.outputs.applicationInsightsName
+  }
+}
 
 resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' existing = {
   name: azureStorageName

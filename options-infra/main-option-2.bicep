@@ -1,4 +1,5 @@
 param location string = resourceGroup().location
+
 @description('The resource ID of the existing Ai resource - Azure Open AI, AI Services or AI Foundry.')
 param existingAiResourceId string = ''
 @description('The Kind of AI Service, can be "AzureOpenAI" or "AIServices". For AI Foundry use AI Services. Its not recommended to use Azure OpenAI resource, since that only provided access to OpenAI models.')

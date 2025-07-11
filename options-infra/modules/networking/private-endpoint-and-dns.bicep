@@ -25,6 +25,7 @@ Security Benefits:
 // Resource names and identifiers
 @description('Name of the AI Foundry account')
 param aiAccountName string
+param aiAccountNameResourceGroup string = resourceGroup().name
 @description('Name of the AI Search service')
 param aiSearchName string
 @description('Name of the storage account')
@@ -77,7 +78,7 @@ param existingDnsZoneSubscriptionId string = subscription().subscriptionId
 // ---- Resource references ----
 resource aiAccount 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
   name: aiAccountName
-  scope: resourceGroup()
+  scope: resourceGroup(aiAccountNameResourceGroup)
 }
 
 resource aiSearch 'Microsoft.Search/searchServices@2023-11-01' existing = {

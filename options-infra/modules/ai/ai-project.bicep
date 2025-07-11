@@ -60,6 +60,10 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' existing 
   scope: resourceGroup(azureStorageSubscriptionId, azureStorageResourceGroupName)
 }
 
+resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-preview' existing = {
+  name: managedIdentityId
+}
+
 #disable-next-line BCP081
 resource foundry_project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
   parent: foundry
@@ -108,16 +112,19 @@ resource byoAoaiConnectionFoundry 'Microsoft.CognitiveServices/accounts/connecti
 //   }
 // }
 
-resource accountCapabilityHost 'Microsoft.CognitiveServices/accounts/capabilityHosts@2025-04-01-preview' = {
-  name: '${foundry.name}-capHost'
-  parent: foundry
-  properties: {
-    capabilityHostKind: 'Agents'
-  }
-  dependsOn: [
-    foundry_project
-  ]
-}
+// TODO is caphost on account level needed? This sample doesn't use it
+// https://github.com/azure-ai-foundry/foundry-samples/blob/main/samples/microsoft/infrastructure-setup/15-private-network-standard-agent-setup/README.md
+
+// resource accountCapabilityHost 'Microsoft.CognitiveServices/accounts/capabilityHosts@2025-04-01-preview' = {
+//   name: '${foundry.name}-capHost'
+//   parent: foundry
+//   properties: {
+//     capabilityHostKind: 'Agents'
+//   }
+//   dependsOn: [
+//     foundry_project
+//   ]
+// }
 
 resource project_connection_cosmosdb_account 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (!empty(cosmosDBName)) {
   name: cosmosDBName
@@ -166,7 +173,7 @@ resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts
 
 output project_name string = foundry_project.name
 output project_id string = foundry_project.id
-output projectPrincipalId string = managedIdentityId
+output projectPrincipalId string = managedIdentity.properties.principalId
 output projectConnectionString string = 'https://${foundry_name}.services.ai.azure.com/api/projects/${project_name}'
 
 // return the BYO connection names
