@@ -79,7 +79,7 @@ module foundry './modules/ai/ai-foundry.bicep' = {
   scope: appResourceGroup
   params: {
     managedIdentityId: identity.outputs.managedIdentityId
-    name: 'ai-foundry-${resourceToken}'
+    name: 'ai-foundry-no-models-${resourceToken}'
     location: location
     appInsightsName: logAnalytics.outputs.applicationInsightsName
     publicNetworkAccess: 'Enabled'
@@ -164,6 +164,7 @@ module addProjectCapabilityHost 'modules/ai/add-project-capability-host.bicep' =
     cosmosDBConnection: aiProject.outputs.cosmosDBConnection
     azureStorageConnection: aiProject.outputs.azureStorageConnection
     aiSearchConnection: aiProject.outputs.aiSearchConnection
+    aiFoundryConnectionName: aiProject.outputs.aiFoundryConnectionName
     projectCapHost: projectCapHost
   }
   dependsOn: [
@@ -189,7 +190,7 @@ module storageContainersRoleAssignment 'modules/iam/blob-storage-container-role-
 
 // The Cosmos Built-In Data Contributor role must be assigned after the caphost is created
 module cosmosContainerRoleAssignments 'modules/iam/cosmos-container-role-assignments.bicep' = {
-  name: 'cosmos-ra-deployment'
+  name: 'cosmos-ra-${resourceToken}-deployment'
   scope: foundryDependenciesResourceGroup
   params: {
     cosmosAccountName: vnet_with_dependencies.outputs.cosmosDBName

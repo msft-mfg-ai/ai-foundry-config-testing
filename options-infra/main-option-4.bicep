@@ -164,7 +164,7 @@ module storageAccountRoleAssignment 'modules/iam/azure-storage-account-role-assi
   name: 'storage-role-assignment-deployment'
   params: {
     azureStorageName: azureStorageName
-    projectPrincipalId: aiProject.outputs.projectPrincipalId
+    projectPrincipalId: identity.outputs.managedIdentityPrincipalId
   }
   dependsOn: [
    storage
@@ -176,7 +176,7 @@ module cosmosAccountRoleAssignments 'modules/iam/cosmosdb-account-role-assignmen
   name: 'cosmos-account-ra-project-deployment'
   params: {
     cosmosDBName: cosmosDBName
-    projectPrincipalId: aiProject.outputs.projectPrincipalId
+    projectPrincipalId: identity.outputs.managedIdentityPrincipalId
   }
   dependsOn: [
     cosmosDB
@@ -188,7 +188,7 @@ module aiSearchRoleAssignments 'modules/iam/ai-search-role-assignments.bicep' = 
   name: 'ai-search-ra-project-deployment'
   params: {
     aiSearchName: aiSearchName
-    projectPrincipalId: aiProject.outputs.projectPrincipalId
+    projectPrincipalId: identity.outputs.managedIdentityPrincipalId
   }
   dependsOn: [
     aiSearch
@@ -217,7 +217,7 @@ module addProjectCapabilityHost 'modules/ai/add-project-capability-host.bicep' =
 module storageContainersRoleAssignment 'modules/iam/blob-storage-container-role-assignments.bicep' = {
   name: 'storage-containers-deployment'
   params: {
-    aiProjectPrincipalId: aiProject.outputs.projectPrincipalId
+    aiProjectPrincipalId: identity.outputs.managedIdentityPrincipalId
     storageName: azureStorageName
     workspaceId: formatProjectWorkspaceId.outputs.projectWorkspaceIdGuid
   }
@@ -228,11 +228,11 @@ module storageContainersRoleAssignment 'modules/iam/blob-storage-container-role-
 
 // The Cosmos Built-In Data Contributor role must be assigned after the caphost is created
 module cosmosContainerRoleAssignments 'modules/iam/cosmos-container-role-assignments.bicep' = {
-  name: 'cosmos-ra-deployment'
+  name: 'cosmos-ra-${resourceToken}-deployment'
   params: {
     cosmosAccountName: cosmosDBName
     projectWorkspaceId: formatProjectWorkspaceId.outputs.projectWorkspaceIdGuid
-    projectPrincipalId: aiProject.outputs.projectPrincipalId
+    projectPrincipalId: identity.outputs.managedIdentityPrincipalId
 
   }
 dependsOn: [

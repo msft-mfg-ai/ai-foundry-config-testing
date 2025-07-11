@@ -61,6 +61,9 @@ resource containerRoleAssignmentUserContainer 'Microsoft.DocumentDB/databaseAcco
     roleDefinitionId: roleDefinitionId
     scope: scopeUserContainer
   }
+  dependsOn: [
+    containerUserMessageStore
+  ]
 }
 
 resource containerRoleAssignmentSystemContainer 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2022-05-15' = {
@@ -71,6 +74,9 @@ resource containerRoleAssignmentSystemContainer 'Microsoft.DocumentDB/databaseAc
     roleDefinitionId: roleDefinitionId
     scope: scopeSystemContainer
   }
+  dependsOn: [
+    containerSystemMessageStore
+  ]
 }
   
   resource containerRoleAssignmentEntityContainer 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2022-05-15' = {
@@ -81,4 +87,7 @@ resource containerRoleAssignmentSystemContainer 'Microsoft.DocumentDB/databaseAc
       roleDefinitionId: roleDefinitionId
       scope: scopeEntityContainer
     }
+    dependsOn: [
+      containerEntityStore
+    ]
   }
