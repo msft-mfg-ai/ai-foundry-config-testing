@@ -25,9 +25,12 @@ param cosmosDBResourceGroupName string = ''
 param azureStorageName string = ''
 param azureStorageSubscriptionId string = ''
 param azureStorageResourceGroupName string = ''
+param createHubCapabilityHost bool = false
+
 
 // Agent doesn't see the models when connection is on the Foundry level
-var usingFoundryAiConnection = false
+@description('Set to true to use the AI Foundry connection for the project, false to use the project connection.')
+param usingFoundryAiConnection bool = false
 var byoAiProjectConnectionName = 'aiConnection-project-for-${project_name}'
 var byoAiFoundryConnectionName = 'aiConnection-foundry-for-${foundry_name}'
 
@@ -113,16 +116,16 @@ resource byoAoaiConnection 'Microsoft.CognitiveServices/accounts/projects/connec
 // TODO is caphost on account level needed? This sample doesn't use it
 // https://github.com/azure-ai-foundry/foundry-samples/blob/main/samples/microsoft/infrastructure-setup/15-private-network-standard-agent-setup/README.md
 
-// resource accountCapabilityHost 'Microsoft.CognitiveServices/accounts/capabilityHosts@2025-04-01-preview' = {
-//   name: '${foundry.name}-capHost'
-//   parent: foundry
-//   properties: {
-//     capabilityHostKind: 'Agents'
-//   }
-//   dependsOn: [
-//     foundry_project
-//   ]
-// }
+resource accountCapabilityHost 'Microsoft.CognitiveServices/accounts/capabilityHosts@2025-04-01-preview' = if (createHubCapabilityHost) {
+  name: '${foundry.name}-capHost'
+  parent: foundry
+  properties: {
+    capabilityHostKind: 'Agents'
+  }
+  dependsOn: [
+    foundry_project
+  ]
+}
 
 resource project_connection_cosmosdb_account 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (!empty(cosmosDBName)) {
   name: cosmosDBName

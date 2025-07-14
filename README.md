@@ -9,6 +9,21 @@
 - [ ] can all the foundries share the same Agents VNET?
 - [ ] what IAM roles to apply for Devs vs. Admins? Devs should not be able to deploy models.
 
+## AI Foundry Standard Network Standard Setup
+
+In this setup, AI Foundry is deployed with BYO resources and Network.
+
+Network and BYO resources apply only to Agent Service, not to other features of Foundry.
+
+### Key Information
+
+**Limited Region Support for Class A Subnet IPs**
+- Class A subnet support is only available in select regions and requires allowlisting of your subscription ID. Supported regions: West US, East US, East US 2, Central US, Japan East, France Central, [New] Spain Central, [New] UAE North
+
+**Region and Resource Placement Requirements**
+- **All Foundry workspace resources should be in the same region as the VNet**, including CosmosDB, Storage Account, AI Search, Foundry Account, Project, Managed Identity. The only exception is within the Foundry Account, you may choose to deploy your model to a different region, and any cross-region communication will be handled securely within our network infrastructure.
+  - **Note:** Your Virtual Network can be in a different resource group than your Foundry workspace resources 
+
 > [!NOTE]
 > Shared AI resource has to be of kind `AIServices` in order to support all models not only OpenAI.
 

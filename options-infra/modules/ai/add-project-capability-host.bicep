@@ -12,7 +12,7 @@ var vectorStoreConnections = empty(aiSearchConnection) ? [] : ['${aiSearchConnec
 var aiConnections = empty(aiFoundryConnectionName) ? [] : ['${aiFoundryConnectionName}']
 
 var isStandardSetup = !empty(cosmosDBConnection) && !empty(azureStorageConnection) && !empty(aiSearchConnection)
-var isCustomAiConnection = !empty(aiFoundryConnectionName)
+var isCustomAiConnection = !empty(aiConnections)
 
 resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
    name: accountName
@@ -31,7 +31,7 @@ resource projectCapabilityHostAgents 'Microsoft.CognitiveServices/accounts/proje
   }
 }
 
-resource projectCapabilityHostStandard 'Microsoft.CognitiveServices/accounts/projects/capabilityHosts@2025-04-01-preview' = if(!isStandardSetup && isCustomAiConnection) {
+resource projectCapabilityHostBasic 'Microsoft.CognitiveServices/accounts/projects/capabilityHosts@2025-04-01-preview' = if(!isStandardSetup && isCustomAiConnection) {
   name: projectCapHost
   parent: project
   properties: {
@@ -40,7 +40,7 @@ resource projectCapabilityHostStandard 'Microsoft.CognitiveServices/accounts/pro
   }
 }
 
-resource projectCapabilityHostBasic 'Microsoft.CognitiveServices/accounts/projects/capabilityHosts@2025-04-01-preview' = if(isStandardSetup && isCustomAiConnection) {
+resource projectCapabilityHostStandard 'Microsoft.CognitiveServices/accounts/projects/capabilityHosts@2025-04-01-preview' = if(isStandardSetup && isCustomAiConnection) {
   name: projectCapHost
   parent: project
   properties: {
@@ -51,4 +51,3 @@ resource projectCapabilityHostBasic 'Microsoft.CognitiveServices/accounts/projec
     aiServicesConnections: aiConnections
   }
 }
-

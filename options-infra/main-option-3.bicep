@@ -202,3 +202,6 @@ module cosmosContainerRoleAssignments 'modules/iam/cosmos-container-role-assignm
     storageContainersRoleAssignment
   ]
 }
+
+output capabilityHostUrl string = 'https://portal.azure.com/${tenant().displayName}/resource/${aiProject.outputs.project_id}/capabilityHosts/${projectCapHost}/overview'
+output aiConnectionUrl string = 'https://portal.azure.com/${tenant().displayName}/resource/${foundry.outputs.id}/connections/${aiProject.outputs.aiFoundryConnectionName}/overview'

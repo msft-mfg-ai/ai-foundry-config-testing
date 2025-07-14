@@ -1,6 +1,6 @@
 param location string = resourceGroup().location
 
-@description('The resource ID of the existing Ai resource - Azure Open AI, AI Services or AI Foundry.')
+@description('The resource ID of the existing Ai resource - Azure Open AI, AI Services or AI Foundry. Resource should be publicly accessible.')
 param existingAiResourceId string = ''
 @description('The Kind of AI Service, can be "AzureOpenAI" or "AIServices". For AI Foundry use AI Services. Its not recommended to use Azure OpenAI resource, since that only provided access to OpenAI models.')
 @allowed([
@@ -80,8 +80,13 @@ module aiProject './modules/ai/ai-project.bicep' = {
     managedIdentityId: identity.outputs.managedIdentityId
     existingAiResourceId: existingAiResourceId
     existingAiKind: existingAiResourceKind
+    usingFoundryAiConnection: true // Use the AI Foundry connection for the project
+    createHubCapabilityHost: true
   }
 }
+
+// AI connection
+// https://portal.azure.com/#@MngEnvMCAP272273.onmicrosoft.com/resource/subscriptions/ece240d5-5c85-4dba-8829-29b9949adad1/resourceGroups/foundry-test-2-rg/providers/Microsoft.CognitiveServices/accounts/ai-foundry-jtkhslxxpjwx2/connections/aiConnection-foundry-for-ai-foundry-jtkhslxxpjwx2/overview
 
 // This module creates the capability host for the project and account
 module addProjectCapabilityHost 'modules/ai/add-project-capability-host.bicep' = {
@@ -92,6 +97,10 @@ module addProjectCapabilityHost 'modules/ai/add-project-capability-host.bicep' =
     cosmosDBConnection: aiProject.outputs.cosmosDBConnection
     azureStorageConnection: aiProject.outputs.azureStorageConnection
     aiSearchConnection: aiProject.outputs.aiSearchConnection
+    aiFoundryConnectionName: aiProject.outputs.aiFoundryConnectionName
     projectCapHost: projectCapHost
   }
 }
+
+output capabilityHostUrl string = 'https://portal.azure.com/${tenant().displayName}/resource/${aiProject.outputs.project_id}/capabilityHosts/${projectCapHost}/overview'
+output aiConnectionUrl string = 'https://portal.azure.com/${tenant().displayName}/resource/${foundry.outputs.id}/connections/${aiProject.outputs.aiFoundryConnectionName}/overview'

@@ -4,6 +4,7 @@ param location string = resourceGroup().location
 
 param resourceToken string = toLower(uniqueString(resourceGroup().id, location))
 param aiServicesName string = 'foundry-landing-zone-${location}-${resourceToken}'
+param aiServicesPublicName string = 'foundry-landing-zone-${location}-PUBLIC-${resourceToken}'
 
 // Foundry doesn't support cross-subscription VNet injection or cross subscription resources, so we need to deploy it in the same subscription
 var doesFoundrySupportsCrossSubscriptionVnet = false
@@ -35,6 +36,27 @@ module aiServices './modules/ai/ai-services.bicep' = {
     ]
   }
 }
+
+module aiServicesPublic './modules/ai/ai-services.bicep' = {
+  name: 'ai-services-public'
+  params: {
+    managedIdentityId: identity.outputs.managedIdentityId
+    name: aiServicesPublicName
+    location: location
+    publicNetworkAccess: 'Enabled' // 'enabled' or 'disabled'
+    deployments: [
+      {
+        name: 'gpt-35-turbo'
+        model: {
+          format: 'OpenAI'
+          name: 'gpt-35-turbo'
+          version: '0125'
+        }
+      }
+    ]
+  }
+}
+
 
 // vnet doesn't have to be in the same RG as the AI Services
 // each agent needs it's own delegated subnet, which means we need as many subnets as agents
