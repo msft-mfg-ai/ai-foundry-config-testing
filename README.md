@@ -15,6 +15,8 @@ In this setup, AI Foundry is deployed with BYO resources and Network.
 
 Network and BYO resources apply only to Agent Service, not to other features of Foundry.
 
+Infrastrastructure is using bicep files provided by the Product Team in [15 private network standard agent setup](https://github.com/azure-ai-foundry/foundry-samples/tree/main/samples/microsoft/infrastructure-setup/15-private-network-standard-agent-setup).
+
 ### Key Information
 
 **Limited Region Support for Class A Subnet IPs**
