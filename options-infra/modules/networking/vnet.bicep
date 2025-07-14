@@ -39,6 +39,10 @@ var vnetAddress = empty(vnetAddressPrefix) ? defaultVnetAddressPrefix : vnetAddr
 var agentSubnet = empty(agentSubnetPrefix) ? cidrSubnet(vnetAddress, 24, 0) : agentSubnetPrefix
 var peSubnet = empty(peSubnetPrefix) ? cidrSubnet(vnetAddress, 24, 1) : peSubnetPrefix
 
+// Temporary
+var laSubnet = empty(peSubnetPrefix) ? cidrSubnet(vnetAddress, 24, 2) : peSubnetPrefix
+var laSubnetName = 'logic-apps-subnet'
+
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   name: vnetName
   location: location
@@ -67,6 +71,20 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
         name: peSubnetName
         properties: {
           addressPrefix: peSubnet
+        }
+      }
+      {
+        name: laSubnetName
+        properties: {
+          addressPrefix: laSubnet
+          delegations: [
+            {
+              name: 'Microsoft.Web/serverfarms'
+              properties: {
+                serviceName: 'Microsoft.Web/serverfarms'
+              }
+            }
+          ]
         }
       }
     ]

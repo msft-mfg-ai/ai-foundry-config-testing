@@ -6,6 +6,8 @@ param aiAccountNameResourceGroupName string
 param vnetResourceId string
 param peSubnetName string
 
+param azureStorageAccountResourceId string = ''
+
 var vnetParts = split(vnetResourceId, '/')
 var vnetSubscriptionId = vnetParts[2]
 var vnetResourceGroupName = vnetParts[4]
@@ -27,8 +29,8 @@ module ai_dependencies '../ai-dependencies/standard-dependent-resources.bicep' =
     aiSearchExists: false
 
     // Storage Account
-    azureStorageAccountResourceId: ''
-    azureStorageExists: false
+    azureStorageAccountResourceId: azureStorageAccountResourceId
+    azureStorageExists: !empty(azureStorageAccountResourceId)
 
     // Cosmos DB Account
     cosmosDBResourceId: ''

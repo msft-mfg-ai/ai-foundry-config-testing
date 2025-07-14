@@ -1,0 +1,71 @@
+@env=./utils/rest-client.env.json
+
+@subscriptionId={{$dotenv subscriptionId}}
+@rg={{$dotenv rg}}
+@capabilityName={{$dotenv capabilityName}}
+@foundryName={{$dotenv foundryName}}
+@foundryCapabilityName={{foundryName}}-capHost
+@projectName={{$dotenv projectName}}
+@vnetName={{$dotenv vnetName}}
+@subnetName={{$dotenv subnetName}}
+@subnetId={{$dotenv subnetId}}
+@baseUrl=https://management.azure.com/subscriptions/{{subscriptionId}}/resourceGroups/{{rg}}/providers/Microsoft.CognitiveServices/accounts/
+
+#<access token - use: az account get-access-token --resource=https://management.azure.com/ --query accessToken -o tsv>
+@token={{$dotenv token}}
+
+### create for hub
+PUT {{baseUrl}}/{{foundryName}}/capabilityHosts/{{foundryCapabilityName}}?api-version=2025-06-01
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "properties": {
+    "capabilityHostKind": "Agents",
+  }
+}
+
+### Get Hub Capability Host
+GET {{baseUrl}}/{{foundryName}}/capabilityHosts/{{foundryCapabilityName}}?api-version=2025-06-01
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### Delete Hub Capability Host
+DELETE {{baseUrl}}/{{foundryName}}/capabilityHosts/{{foundryCapabilityName}}?api-version=2025-06-01
+Authorization: Bearer {{token}}
+
+### Create Project Capability Host
+PUT {{baseUrl}}/{{foundryName}}/projects/{{projectName}}/capabilityHosts/{{capabilityName}}?api-version=2025-04-01-preview
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "properties": {
+    "description": "This is a test capability host for project",
+    "capabilityHostKind": "Agents",
+    "aiServicesConnections": ["aiConnection-project-for-ai-project1"],
+    "vectorStoreConnections": ["project-search-v3wpaxgcyqrtw"],
+    "threadStorageConnections": ["project-cosmosdb-v3wpaxgcyqrtw"],
+    "storageConnections": ["myapprgae53"]
+  }
+}
+
+### Get Project Capability Host
+GET {{baseUrl}}/{{foundryName}}/projects/{{projectName}}/capabilityHosts/{{capabilityName}}?api-version=2025-04-01-preview
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### DELETE Project Capability Host
+DELETE {{baseUrl}}/{{foundryName}}/projects/{{projectName}}/capabilityHosts/{{capabilityName}}?api-version=2025-04-01-preview
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### Progress
+GET https://management.azure.com/subscriptions/ece240d5-5c85-4dba-8829-29b9949adad1/providers/Microsoft.MachineLearningServices/locations/westus/mfeOperationsStatus/ch:1d2961e5-4dfc-4108-845b-d82fa2b55b00:0563ed51-e3c0-4945-b9c0-174b21ba74d9?api-version=2025-04-01-preview
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### Get Project Connections
+GET {{baseUrl}}/{{foundryName}}/projects/{{projectName}}/connections?api-version=2025-04-01-preview
+Authorization: Bearer {{token}}
+Content-Type: application/json

@@ -62,6 +62,18 @@ module vnet 'modules/networking/vnet.bicep' = {
   }
 }
 
+// Storage in the same RG as Foundry
+module local_storage 'modules/storage/storage-foundry.bicep' = {
+  name: 'local-storage'
+  scope: appResourceGroup
+  params: {
+    location: location
+    azureStorageName: 'foundry${resourceToken}'
+    azureStorageAccountResourceId: ''
+    azureStorageExists: false
+  }
+}
+
 module vnet_with_dependencies './modules/ai/ai-dependencies-with-dns.bicep' = {
   name: 'vnet-with-dependencies'
   scope: foundryDependenciesResourceGroup
@@ -71,6 +83,7 @@ module vnet_with_dependencies './modules/ai/ai-dependencies-with-dns.bicep' = {
     resourceToken: resourceToken
     aiServicesName: foundry.outputs.name
     aiAccountNameResourceGroupName: appResourceGroup.name
+    azureStorageAccountResourceId: local_storage.outputs.azureStorageId
   }
 }
 
@@ -127,7 +140,7 @@ module formatProjectWorkspaceId 'modules/ai/format-project-workspace-id.bicep' =
 
 module storageAccountRoleAssignment 'modules/iam/azure-storage-account-role-assignment.bicep' = {
   name: 'storage-role-assignment-deployment'
-  scope: foundryDependenciesResourceGroup
+  scope: appResourceGroup
   params: {
     azureStorageName: vnet_with_dependencies.outputs.azureStorageName
     projectPrincipalId: identity.outputs.managedIdentityPrincipalId
@@ -177,7 +190,7 @@ module addProjectCapabilityHost 'modules/ai/add-project-capability-host.bicep' =
 // The Storage Blob Data Owner role must be assigned after the caphost is created
 module storageContainersRoleAssignment 'modules/iam/blob-storage-container-role-assignments.bicep' = {
   name: 'storage-containers-deployment'
-  scope: foundryDependenciesResourceGroup
+  scope: appResourceGroup
   params: {
     aiProjectPrincipalId: identity.outputs.managedIdentityPrincipalId
     storageName: vnet_with_dependencies.outputs.azureStorageName
