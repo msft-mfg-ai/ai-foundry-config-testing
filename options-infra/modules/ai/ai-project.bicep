@@ -3,7 +3,7 @@ param location string
 param project_name string
 param project_description string
 param display_name string
-param managedIdentityId string
+param managedIdentityId string = ''
 param tags object = {}
 @description('The resource ID of the existing AI resource.')
 param existingAiResourceId string
@@ -27,6 +27,15 @@ param azureStorageSubscriptionId string = ''
 param azureStorageResourceGroupName string = ''
 param createHubCapabilityHost bool = false
 
+// --------------------------------------------------------------------------------------------------------------
+// split managed identity resource ID to get the name
+var identityParts = split(managedIdentityId, '/')
+// get the name of the managed identity
+var managedIdentityName = length(identityParts) > 0 ? identityParts[length(identityParts) - 1] : ''
+
+resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-preview' existing = if (!empty(managedIdentityName)) {
+  name: managedIdentityName
+}
 
 // Agent doesn't see the models when connection is on the Foundry level
 @description('Set to true to use the AI Foundry connection for the project, false to use the project connection.')
@@ -71,12 +80,16 @@ resource foundry_project 'Microsoft.CognitiveServices/accounts/projects@2025-04-
   name: project_name
   tags: tags
   location: location
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${managedIdentityId}': {}
-    }
-  }
+  identity: !empty(managedIdentityId)
+    ? {
+        type: 'UserAssigned'
+        userAssignedIdentities: {
+          '${managedIdentityId}': {}
+        }
+      }
+    : {
+        type: 'SystemAssigned'
+      }
   properties: {
     description: project_description
     displayName: display_name
@@ -180,7 +193,13 @@ output projectConnectionString string = 'https://${foundry_name}.services.ai.azu
 output cosmosDBConnection string = cosmosDBName
 output azureStorageConnection string = azureStorageName
 output aiSearchConnection string = aiSearchName
-output aiFoundryConnectionName string = usingFoundryAiConnection ? byoAiFoundryConnectionName : byoAiProjectConnectionName
+output aiFoundryConnectionName string = usingFoundryAiConnection
+  ? byoAiFoundryConnectionName
+  : byoAiProjectConnectionName
 
 #disable-next-line BCP053
 output projectWorkspaceId string = foundry_project.properties.internalId
+
+output accountPrincipalId string = empty(managedIdentityId)
+  ? foundry_project.identity.principalId
+  : identity.properties.principalId

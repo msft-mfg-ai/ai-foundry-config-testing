@@ -62,17 +62,6 @@ module vnet 'modules/networking/vnet.bicep' = {
   }
 }
 
-// Storage in the same RG as Foundry
-module local_storage 'modules/storage/storage-foundry.bicep' = {
-  name: 'local-storage'
-  scope: appResourceGroup
-  params: {
-    location: location
-    azureStorageName: 'foundry${resourceToken}'
-    azureStorageAccountResourceId: ''
-    azureStorageExists: false
-  }
-}
 
 module vnet_with_dependencies './modules/ai/ai-dependencies-with-dns.bicep' = {
   name: 'vnet-with-dependencies'
@@ -83,7 +72,6 @@ module vnet_with_dependencies './modules/ai/ai-dependencies-with-dns.bicep' = {
     resourceToken: resourceToken
     aiServicesName: foundry.outputs.name
     aiAccountNameResourceGroupName: appResourceGroup.name
-    azureStorageAccountResourceId: local_storage.outputs.azureStorageId
   }
 }
 
@@ -91,7 +79,7 @@ module foundry './modules/ai/ai-foundry.bicep' = {
   name: 'foundry'
   scope: appResourceGroup
   params: {
-    managedIdentityId: identity.outputs.managedIdentityId
+    managedIdentityId: '' // Use System Assigned Identity
     name: 'ai-foundry-no-models-${resourceToken}'
     location: location
     appInsightsName: logAnalytics.outputs.applicationInsightsName
@@ -110,7 +98,7 @@ module aiProject './modules/ai/ai-project.bicep' = {
     project_name: 'ai-project1'
     project_description: 'AI Project with existing, external AI resource ${existingAiResourceId}'
     display_name: 'AI Project with ${existingAiResourceKind}'
-    managedIdentityId: identity.outputs.managedIdentityId
+    managedIdentityId: '' // Use System Assigned Identity
     existingAiResourceId: existingAiResourceId
     existingAiKind: existingAiResourceKind
 
@@ -140,10 +128,10 @@ module formatProjectWorkspaceId 'modules/ai/format-project-workspace-id.bicep' =
 
 module storageAccountRoleAssignment 'modules/iam/azure-storage-account-role-assignment.bicep' = {
   name: 'storage-role-assignment-deployment'
-  scope: appResourceGroup
+  scope: foundryDependenciesResourceGroup
   params: {
     azureStorageName: vnet_with_dependencies.outputs.azureStorageName
-    projectPrincipalId: identity.outputs.managedIdentityPrincipalId
+    projectPrincipalId: aiProject.outputs.accountPrincipalId
   }
 }
 
@@ -153,7 +141,7 @@ module cosmosAccountRoleAssignments 'modules/iam/cosmosdb-account-role-assignmen
   scope: foundryDependenciesResourceGroup
   params: {
     cosmosDBName: vnet_with_dependencies.outputs.cosmosDBName
-    projectPrincipalId: identity.outputs.managedIdentityPrincipalId
+    projectPrincipalId: aiProject.outputs.accountPrincipalId
   }
 }
 
@@ -163,7 +151,7 @@ module aiSearchRoleAssignments 'modules/iam/ai-search-role-assignments.bicep' = 
   scope: foundryDependenciesResourceGroup
   params: {
     aiSearchName: vnet_with_dependencies.outputs.aiSearchName
-    projectPrincipalId: identity.outputs.managedIdentityPrincipalId
+    projectPrincipalId: aiProject.outputs.accountPrincipalId
   }
 }
 
@@ -190,9 +178,9 @@ module addProjectCapabilityHost 'modules/ai/add-project-capability-host.bicep' =
 // The Storage Blob Data Owner role must be assigned after the caphost is created
 module storageContainersRoleAssignment 'modules/iam/blob-storage-container-role-assignments.bicep' = {
   name: 'storage-containers-deployment'
-  scope: appResourceGroup
+  scope: foundryDependenciesResourceGroup
   params: {
-    aiProjectPrincipalId: identity.outputs.managedIdentityPrincipalId
+    aiProjectPrincipalId: aiProject.outputs.accountPrincipalId
     storageName: vnet_with_dependencies.outputs.azureStorageName
     workspaceId: formatProjectWorkspaceId.outputs.projectWorkspaceIdGuid
   }
@@ -208,7 +196,7 @@ module cosmosContainerRoleAssignments 'modules/iam/cosmos-container-role-assignm
   params: {
     cosmosAccountName: vnet_with_dependencies.outputs.cosmosDBName
     projectWorkspaceId: formatProjectWorkspaceId.outputs.projectWorkspaceIdGuid
-    projectPrincipalId: identity.outputs.managedIdentityPrincipalId
+    projectPrincipalId: aiProject.outputs.accountPrincipalId
   }
   dependsOn: [
     addProjectCapabilityHost

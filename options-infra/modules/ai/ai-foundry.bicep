@@ -15,7 +15,7 @@ param sku object = {
 }
 @description('Provide the IP address to allow access to the Azure Container Registry')
 param myIpAddress string = ''
-param managedIdentityId string
+param managedIdentityId string = ''
 
 param textEmbeddings array = []
 param chatGpt_Standard object = {}
@@ -56,6 +56,15 @@ var deployments = deployModels
       }
     ])
   : []
+// --------------------------------------------------------------------------------------------------------------
+// split managed identity resource ID to get the name
+var identityParts = split(managedIdentityId, '/')
+// get the name of the managed identity
+var managedIdentityName = length(identityParts) > 0 ? identityParts[length(identityParts) - 1] : ''
+
+resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-preview' existing = if (!empty(managedIdentityName)) {
+  name: managedIdentityName
+}
 
 // --------------------------------------------------------------------------------------------------------------
 resource existingAccount 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = if (useExistingService) {
@@ -70,13 +79,16 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = if 
   location: location
   tags: tags
   kind: 'AIServices'
-
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${managedIdentityId}': {}
-    }
-  }
+  identity: !empty(managedIdentityId)
+    ? {
+        type: 'UserAssigned'
+        userAssignedIdentities: {
+          '${managedIdentityId}': {}
+        }
+      }
+    : {
+        type: 'SystemAssigned'
+      }
   properties: {
     // required to work in AI Foundry
     allowProjectManagement: true
@@ -159,3 +171,7 @@ output cognitiveServicesKeySecretName string = cognitiveServicesKeySecretName
 
 output textEmbeddings array = textEmbeddings
 output chatGpt_Standard object = chatGpt_Standard
+
+output accountPrincipalId string = empty(managedIdentityId)
+  ? account.identity.principalId
+  : identity.properties.principalId

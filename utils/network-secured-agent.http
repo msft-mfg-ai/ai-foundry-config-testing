@@ -38,6 +38,7 @@ Authorization: Bearer {{token}}
 PUT {{baseUrl}}/{{foundryName}}/projects/{{projectName}}/capabilityHosts/{{capabilityName}}?api-version=2025-04-01-preview
 Authorization: Bearer {{token}}
 Content-Type: application/json
+Accept: application/json
 
 {
   "properties": {
@@ -46,7 +47,7 @@ Content-Type: application/json
     "aiServicesConnections": ["aiConnection-project-for-ai-project1"],
     "vectorStoreConnections": ["project-search-v3wpaxgcyqrtw"],
     "threadStorageConnections": ["project-cosmosdb-v3wpaxgcyqrtw"],
-    "storageConnections": ["myapprgae53"]
+    "storageConnections": ["storagepkaaaa"]
   }
 }
 
