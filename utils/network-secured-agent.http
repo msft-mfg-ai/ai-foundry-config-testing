@@ -44,10 +44,10 @@ Accept: application/json
   "properties": {
     "description": "This is a test capability host for project",
     "capabilityHostKind": "Agents",
-    "aiServicesConnections": ["aiConnection-project-for-ai-project1"],
-    "vectorStoreConnections": ["project-search-v3wpaxgcyqrtw"],
-    "threadStorageConnections": ["project-cosmosdb-v3wpaxgcyqrtw"],
-    "storageConnections": ["storagepkaaaa"]
+    "aiServicesConnections": ["emissionscopilotcogdev2bntpnqkfowt4"],
+    "vectorStoreConnections": ["project-search-hg42uwhsr2fla"],
+    "threadStorageConnections": ["project-cosmosdb-hg42uwhsr2fla"],
+    "storageConnections": ["projstoragehg42uwhsr2fla"]
   }
 }
 
@@ -70,3 +70,19 @@ Content-Type: application/json
 GET {{baseUrl}}/{{foundryName}}/projects/{{projectName}}/connections?api-version=2025-04-01-preview
 Authorization: Bearer {{token}}
 Content-Type: application/json
+
+### Patch connection
+PATCH {{baseUrl}}/{{foundryName}}/projects/{{projectName}}/connections/openai-via-apim?api-version=2025-04-01-preview
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "properties": {
+    "authType": "ApiKey",
+    // Only include the properties you want to update
+    "target": "https://SOME_URL",
+    "credentials": {
+      "key": "APIM_KEY"
+    }
+  }
+}
