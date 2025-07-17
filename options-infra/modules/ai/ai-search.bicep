@@ -3,6 +3,16 @@ param location string = resourceGroup().location
 param tags object = {}
 param managedIdentityId string
 
+// --------------------------------------------------------------------------------------------------------------
+// split managed identity resource ID to get the name
+var identityParts = split(managedIdentityId, '/')
+// get the name of the managed identity
+var managedIdentityName = length(identityParts) > 0 ? identityParts[length(identityParts) - 1] : ''
+
+resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-preview' existing = if (!empty(managedIdentityName)) {
+  name: managedIdentityName
+}
+
 @description('The pricing tier of the search service you want to create (for example, basic or standard).')
 @allowed([
   'free'
@@ -56,11 +66,13 @@ var searchServiceName = name
 var networkAcls = {
   bypass: 'AzureServices'
   defaultAction: empty(myIpAddress) ? 'Allow' : 'Deny'
-  ipRules: empty(myIpAddress) ? [] : [
-    {
-      value: myIpAddress
-    }
-  ]
+  ipRules: empty(myIpAddress)
+    ? []
+    : [
+        {
+          value: myIpAddress
+        }
+      ]
 }
 
 // Azure AI Search Service
@@ -68,12 +80,16 @@ resource searchService 'Microsoft.Search/searchServices@2024-06-01-preview' = {
   name: searchServiceName
   location: location
   tags: tags
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${managedIdentityId}': {}
-    }
-  }
+  identity: !empty(managedIdentityId)
+    ? {
+        type: 'UserAssigned'
+        userAssignedIdentities: {
+          '${managedIdentityId}': {}
+        }
+      }
+    : {
+        type: 'SystemAssigned'
+      }
   sku: {
     name: sku
   }
@@ -84,11 +100,13 @@ resource searchService 'Microsoft.Search/searchServices@2024-06-01-preview' = {
     publicNetworkAccess: publicNetworkAccess
     networkRuleSet: publicNetworkAccess == 'enabled' ? networkAcls : null
     disableLocalAuth: disableLocalAuth
-    authOptions: disableLocalAuth ? {
-      aadOrApiKey: {
-        aadAuthFailureMode: 'http401WithBearerChallenge'
-      }
-    } : null
+    authOptions: disableLocalAuth
+      ? {
+          aadOrApiKey: {
+            aadAuthFailureMode: 'http401WithBearerChallenge'
+          }
+        }
+      : null
     encryptionWithCmk: {
       enforcement: 'Unspecified'
     }
@@ -103,3 +121,6 @@ output endpoint string = 'https://${searchService.name}.search.windows.net'
 output primaryKey string = searchService.listAdminKeys().primaryKey
 output secondaryKey string = searchService.listAdminKeys().secondaryKey
 output queryKey string = searchService.listQueryKeys().value[0].key
+output accountPrincipalId string = empty(managedIdentityId)
+  ? searchService.identity.principalId
+  : identity.properties.principalId
