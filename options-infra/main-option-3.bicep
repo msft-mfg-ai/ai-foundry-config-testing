@@ -1,8 +1,17 @@
+// This bicep files deploys two resource groups:
+// 1. The main resource group for the AI Project and Foundry
+// 2. The resource group for the AI Foundry dependencies, such as VNet and
+//    private endpoints for AI Search, Azure Storage and Cosmos DB
+// The AI Project is created in the main resource group, but it uses the dependencies
+// from the second resource group and AI Foundry from a different subscription, included by existingAiResourceId
 targetScope = 'subscription'
 
 param location string
 param applicationName string = 'my-app'
-var resourceGroupName = '${applicationName}-rg'
+param app1Name string = '${applicationName}-1'
+param app2Name string = '${applicationName}-2'
+var app1ResourceGroupName = '${app1Name}-rg'
+var app2ResourceGroupName = '${app2Name}-rg'
 var foundryDependenciesResourceGroupName = '${applicationName}-foundry-dependencies-rg'
 
 @description('The resource ID of the existing Ai resource - Azure Open AI, AI Services or AI Foundry.')
@@ -18,10 +27,14 @@ param existingAiResourceKind string = 'AIServices' // Can be 'AzureOpenAI' or 'A
 @description('The name of the project capability host to be created')
 param projectCapHost string = 'caphostproj'
 
-var resourceToken = toLower(uniqueString(resourceGroupName, subscription().subscriptionId, location))
+var resourceToken = toLower(uniqueString(subscription().subscriptionId, location))
 
-resource appResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
-  name: resourceGroupName
+resource app1ResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+  name: app1ResourceGroupName
+  location: location
+}
+resource app2ResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+  name: app2ResourceGroupName
   location: location
 }
 resource foundryDependenciesResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
@@ -29,27 +42,7 @@ resource foundryDependenciesResourceGroup 'Microsoft.Resources/resourceGroups@20
   location: location
 }
 
-// --------------------------------------------------------------------------------------------------------------
-// -- Log Analytics Workspace and App Insights ------------------------------------------------------------------
-// --------------------------------------------------------------------------------------------------------------
-module logAnalytics './modules/monitor/loganalytics.bicep' = {
-  name: 'law'
-  scope: appResourceGroup
-  params: {
-    newLogAnalyticsName: 'project-log-analytics'
-    newApplicationInsightsName: 'project-app-insights'
-    location: location
-  }
-}
 
-module identity './modules/iam/identity.bicep' = {
-  scope: appResourceGroup
-  name: 'app-identity'
-  params: {
-    identityName: 'app-project-identity'
-    location: location
-  }
-}
 
 // vnet doesn't have to be in the same RG as the AI Services
 // each agent needs it's own delegated subnet, which means we need as many subnets as agents
@@ -59,150 +52,78 @@ module vnet 'modules/networking/vnet.bicep' = {
   params: {
     vnetName: 'project-vnet-${resourceToken}'
     location: location
+    extraAgentSubnets: 2
   }
 }
 
 
-module vnet_with_dependencies './modules/ai/ai-dependencies-with-dns.bicep' = {
+module ai_dependencies './modules/ai/ai-dependencies-with-dns.bicep' = {
   name: 'vnet-with-dependencies'
   scope: foundryDependenciesResourceGroup
   params: {
     peSubnetName: vnet.outputs.peSubnetName
     vnetResourceId: vnet.outputs.virtualNetworkId
     resourceToken: resourceToken
-    aiServicesName: foundry.outputs.name
-    aiAccountNameResourceGroupName: appResourceGroup.name
+    aiServicesName: '' // create AI serviced PE later
+    aiAccountNameResourceGroupName: ''
   }
 }
 
-module foundry './modules/ai/ai-foundry.bicep' = {
-  name: 'foundry'
-  scope: appResourceGroup
+module app1 'modules/app/app-rg.bicep' = {
+  name: 'app-${app1Name}'
+  scope: app1ResourceGroup
   params: {
-    managedIdentityId: '' // Use System Assigned Identity
-    name: 'ai-foundry-no-models-${resourceToken}'
     location: location
-    appInsightsName: logAnalytics.outputs.applicationInsightsName
-    publicNetworkAccess: 'Enabled'
-    deployModels: false
-    agentSubnetId: vnet.outputs.agentSubnetId
-  }
-}
-
-module aiProject './modules/ai/ai-project.bicep' = {
-  name: 'ai-project'
-  scope: appResourceGroup
-  params: {
-    foundry_name: foundry.outputs.name
-    location: location
-    project_name: 'ai-project1'
-    project_description: 'AI Project with existing, external AI resource ${existingAiResourceId}'
-    display_name: 'AI Project with ${existingAiResourceKind}'
-    managedIdentityId: '' // Use System Assigned Identity
+    appName: app1Name
+    capabilityHostName: projectCapHost
+    agentSubnetId: vnet.outputs.extraAgentSubnetIds[0] // Use the first agent subnet
+    aiDependencies: ai_dependencies.outputs.aiDependencies
     existingAiResourceId: existingAiResourceId
-    existingAiKind: existingAiResourceKind
-
-    aiSearchName: vnet_with_dependencies.outputs.aiSearchName
-    aiSearchServiceResourceGroupName: vnet_with_dependencies.outputs.aiSearchResourceGroupName
-    aiSearchServiceSubscriptionId: vnet_with_dependencies.outputs.aiSearchSubscriptionId
-
-    azureStorageName: vnet_with_dependencies.outputs.azureStorageName
-    azureStorageResourceGroupName: vnet_with_dependencies.outputs.azureStorageResourceGroupName
-    azureStorageSubscriptionId: vnet_with_dependencies.outputs.azureStorageSubscriptionId
-
-    cosmosDBName: vnet_with_dependencies.outputs.cosmosDBName
-    cosmosDBResourceGroupName: vnet_with_dependencies.outputs.cosmosDBResourceGroupName
-    cosmosDBSubscriptionId: vnet_with_dependencies.outputs.cosmosDBSubscriptionId
+    existingAiResourceKind: existingAiResourceKind
   }
 }
 
-module formatProjectWorkspaceId 'modules/ai/format-project-workspace-id.bicep' = {
-  name: 'format-project-workspace-id-deployment'
-  scope: appResourceGroup
+module app2 'modules/app/app-rg.bicep' = {
+  name: 'app-${app2Name}'
+  scope: app2ResourceGroup
   params: {
-    projectWorkspaceId: aiProject.outputs.projectWorkspaceId
+    location: location
+    appName: app2Name
+    capabilityHostName: projectCapHost
+    agentSubnetId: vnet.outputs.extraAgentSubnetIds[1] // Use the second agent subnet
+    aiDependencies: ai_dependencies.outputs.aiDependencies
+    existingAiResourceId: existingAiResourceId
+    existingAiResourceKind: existingAiResourceKind
   }
 }
 
-//Assigns the project SMI the storage blob data contributor role on the storage account
-
-module storageAccountRoleAssignment 'modules/iam/azure-storage-account-role-assignment.bicep' = {
-  name: 'storage-role-assignment-deployment'
+module ai1_private_endpoint 'modules/networking/ai-pe-dns.bicep' = {
+  name: '${app1Name}-ai-private-endpoint'
   scope: foundryDependenciesResourceGroup
   params: {
-    azureStorageName: vnet_with_dependencies.outputs.azureStorageName
-    projectPrincipalId: aiProject.outputs.accountPrincipalId
+    aiAccountName: app1.outputs.aiAccountName
+    aiAccountNameResourceGroup: app1ResourceGroup.name
+    peSubnetId: vnet.outputs.peSubnetId
+    resourceToken: resourceToken
+    vnetId: vnet.outputs.virtualNetworkId
+    existingDnsZones: ai_dependencies.outputs.DNSZones
   }
 }
 
-// The Comos DB Operator role must be assigned before the caphost is created
-module cosmosAccountRoleAssignments 'modules/iam/cosmosdb-account-role-assignment.bicep' = {
-  name: 'cosmos-account-ra-project-deployment'
+module ai2_private_endpoint 'modules/networking/ai-pe-dns.bicep' = {
+  name: '${app2Name}-ai-private-endpoint'
   scope: foundryDependenciesResourceGroup
   params: {
-    cosmosDBName: vnet_with_dependencies.outputs.cosmosDBName
-    projectPrincipalId: aiProject.outputs.accountPrincipalId
+    aiAccountName: app2.outputs.aiAccountName
+    aiAccountNameResourceGroup: app2ResourceGroup.name
+    peSubnetId: vnet.outputs.peSubnetId
+    resourceToken: resourceToken
+    vnetId: vnet.outputs.virtualNetworkId
+    existingDnsZones: ai_dependencies.outputs.DNSZones
   }
 }
 
-// This role can be assigned before or after the caphost is created
-module aiSearchRoleAssignments 'modules/iam/ai-search-role-assignments.bicep' = {
-  name: 'ai-search-ra-project-deployment'
-  scope: foundryDependenciesResourceGroup
-  params: {
-    aiSearchName: vnet_with_dependencies.outputs.aiSearchName
-    projectPrincipalId: aiProject.outputs.accountPrincipalId
-  }
-}
-
-// This module creates the capability host for the project and account
-module addProjectCapabilityHost 'modules/ai/add-project-capability-host.bicep' = {
-  name: 'capabilityHost-configuration-deployment'
-  scope: appResourceGroup
-  params: {
-    accountName: foundry.outputs.name
-    projectName: aiProject.outputs.project_name
-    cosmosDBConnection: aiProject.outputs.cosmosDBConnection
-    azureStorageConnection: aiProject.outputs.azureStorageConnection
-    aiSearchConnection: aiProject.outputs.aiSearchConnection
-    aiFoundryConnectionName: aiProject.outputs.aiFoundryConnectionName
-    projectCapHost: projectCapHost
-  }
-  dependsOn: [
-    cosmosAccountRoleAssignments
-    storageAccountRoleAssignment
-    aiSearchRoleAssignments
-  ]
-}
-
-// The Storage Blob Data Owner role must be assigned after the caphost is created
-module storageContainersRoleAssignment 'modules/iam/blob-storage-container-role-assignments.bicep' = {
-  name: 'storage-containers-deployment'
-  scope: foundryDependenciesResourceGroup
-  params: {
-    aiProjectPrincipalId: aiProject.outputs.accountPrincipalId
-    storageName: vnet_with_dependencies.outputs.azureStorageName
-    workspaceId: formatProjectWorkspaceId.outputs.projectWorkspaceIdGuid
-  }
-  dependsOn: [
-    addProjectCapabilityHost
-  ]
-}
-
-// The Cosmos Built-In Data Contributor role must be assigned after the caphost is created
-module cosmosContainerRoleAssignments 'modules/iam/cosmos-container-role-assignments.bicep' = {
-  name: 'cosmos-ra-${resourceToken}-deployment'
-  scope: foundryDependenciesResourceGroup
-  params: {
-    cosmosAccountName: vnet_with_dependencies.outputs.cosmosDBName
-    projectWorkspaceId: formatProjectWorkspaceId.outputs.projectWorkspaceIdGuid
-    projectPrincipalId: aiProject.outputs.accountPrincipalId
-  }
-  dependsOn: [
-    addProjectCapabilityHost
-    storageContainersRoleAssignment
-  ]
-}
-
-output capabilityHostUrl string = 'https://portal.azure.com/${tenant().displayName}/resource/${aiProject.outputs.project_id}/capabilityHosts/${projectCapHost}/overview'
-output aiConnectionUrl string = 'https://portal.azure.com/${tenant().displayName}/resource/${foundry.outputs.id}/connections/${aiProject.outputs.aiFoundryConnectionName}/overview'
+output capability1HostUrl string = app1.outputs.capabilityHostUrl
+output capability2HostUrl string = app2.outputs.capabilityHostUrl
+output ai1ConnectionUrl string = app1.outputs.aiConnectionUrl
+output ai2ConnectionUrl string = app2.outputs.aiConnectionUrl

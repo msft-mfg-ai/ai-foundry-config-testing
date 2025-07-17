@@ -25,12 +25,12 @@ param agentSubnetName string = 'agent-subnet'
 @description('The name of Hub subnet')
 param peSubnetName string = 'pe-subnet'
 
-
 @description('Address space for the VNet')
 param vnetAddressPrefix string = ''
 
 @description('Address prefix for the agent subnet')
 param agentSubnetPrefix string = ''
+param extraAgentSubnets int = 0 // Number of additional agent subnets to create
 
 @description('Address prefix for the private endpoint subnet')
 param peSubnetPrefix string = ''
@@ -43,6 +43,24 @@ var peSubnet = empty(peSubnetPrefix) ? cidrSubnet(vnetAddress, 24, 1) : peSubnet
 var laSubnet = empty(peSubnetPrefix) ? cidrSubnet(vnetAddress, 24, 2) : peSubnetPrefix
 var laSubnetName = 'logic-apps-subnet'
 
+var extraAgentSubnetNames = [for i in range(0, extraAgentSubnets): '${agentSubnetName}-${i + 1}']
+var extraAgentSubnetObjects = [
+  for i in range(0, extraAgentSubnets): {
+    name: extraAgentSubnetNames[i]
+    properties: {
+      addressPrefix: cidrSubnet(vnetAddress, 24, i + 3) // Start from 3 to avoid conflicts with agent and PE subnets
+      delegations: [
+        {
+          name: 'Microsoft.app/environments'
+          properties: {
+            serviceName: 'Microsoft.App/environments'
+          }
+        }
+      ]
+    }
+  }
+]
+
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   name: vnetName
   location: location
@@ -52,7 +70,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
         vnetAddress
       ]
     }
-    subnets: [
+    subnets: union(extraAgentSubnetObjects, [
       {
         name: agentSubnetName
         properties: {
@@ -87,7 +105,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
           ]
         }
       }
-    ]
+    ])
   }
 }
 // Output variables
@@ -99,3 +117,5 @@ output virtualNetworkName string = virtualNetwork.name
 output virtualNetworkId string = virtualNetwork.id
 output virtualNetworkResourceGroup string = resourceGroup().name
 output virtualNetworkSubscriptionId string = subscription().subscriptionId
+output extraAgentSubnetNames array = extraAgentSubnetNames
+output extraAgentSubnetIds array = [for name in extraAgentSubnetNames: '${virtualNetwork.id}/subnets/${name}']

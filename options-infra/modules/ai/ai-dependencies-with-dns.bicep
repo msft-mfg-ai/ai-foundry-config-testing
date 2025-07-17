@@ -1,3 +1,4 @@
+import * as types from '../types/types.bicep'
 param location string = resourceGroup().location
 param resourceToken string
 param aiServicesName string
@@ -66,17 +67,26 @@ module privateEndpointAndDNS '../networking/private-endpoint-and-dns.bicep' = {
   }
 }
 
-output aiSearchName string = ai_dependencies.outputs.aiSearchName
-output aiSearchResourceId string = ai_dependencies.outputs.aiSearchID
-output aiSearchResourceGroupName string = ai_dependencies.outputs.aiSearchServiceResourceGroupName
-output aiSearchSubscriptionId string = ai_dependencies.outputs.aiSearchServiceSubscriptionId
+output DNSZones types.DnsZonesType = privateEndpointAndDNS.outputs.DNSZones
+output aiDependencies types.aiDependenciesType = {
+  aiSearch: {
+    name: ai_dependencies.outputs.aiSearchName
+    resourceId: ai_dependencies.outputs.aiSearchID
+    resourceGroupName: ai_dependencies.outputs.aiSearchServiceResourceGroupName
+    subscriptionId: ai_dependencies.outputs.aiSearchServiceSubscriptionId
+  }
+  azureStorage: {
+    name: ai_dependencies.outputs.azureStorageName
+    resourceId: ai_dependencies.outputs.azureStorageId
+    resourceGroupName: ai_dependencies.outputs.azureStorageResourceGroupName
+    subscriptionId: ai_dependencies.outputs.azureStorageSubscriptionId
+  }
+  cosmosDB: {
+    name: ai_dependencies.outputs.cosmosDBName
+    resourceId: ai_dependencies.outputs.cosmosDBId
+    resourceGroupName: ai_dependencies.outputs.cosmosDBResourceGroupName
+    subscriptionId: ai_dependencies.outputs.cosmosDBSubscriptionId
+  }
+}
 
-output azureStorageName string = ai_dependencies.outputs.azureStorageName
-output azureStorageId string = ai_dependencies.outputs.azureStorageId
-output azureStorageResourceGroupName string = ai_dependencies.outputs.azureStorageResourceGroupName
-output azureStorageSubscriptionId string = ai_dependencies.outputs.azureStorageSubscriptionId
 
-output cosmosDBName string = ai_dependencies.outputs.cosmosDBName
-output cosmosDBId string = ai_dependencies.outputs.cosmosDBId
-output cosmosDBResourceGroupName string = ai_dependencies.outputs.cosmosDBResourceGroupName
-output cosmosDBSubscriptionId string = ai_dependencies.outputs.cosmosDBSubscriptionId
