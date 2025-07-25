@@ -25,8 +25,8 @@ Content-Type: application/json
   }
 }
 
-### Get Hub Capability Host
-GET {{baseUrl}}/{{foundryName}}/capabilityHosts/{{foundryCapabilityName}}?api-version=2025-06-01
+### Get Hub Capability Hosts
+GET {{baseUrl}}/{{foundryName}}/capabilityHosts/?api-version=2025-06-01
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -72,17 +72,29 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 
 ### Patch connection
-PATCH {{baseUrl}}/{{foundryName}}/projects/{{projectName}}/connections/openai-via-apim?api-version=2025-04-01-preview
+PATCH {{baseUrl}}/{{foundryName}}/projects/{{projectName}}/connections/emissionscopilotcogdev2bntpnqkfowt4?api-version=2025-04-01-preview
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
   "properties": {
-    "authType": "ApiKey",
+    "authType": "AAD",
     // Only include the properties you want to update
-    "target": "https://SOME_URL",
-    "credentials": {
-      "key": "APIM_KEY"
-    }
+    "target": "https://2nkn24g7-8081.use2.devtunnels.ms/",
   }
+}
+
+### chat completion
+POST  https://2nkn24g7-8081.use2.devtunnels.ms/openai/deployments/gtp-35-turbo/chat/completions?api-version=2024-02-15-preview
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "messages": [
+    { "role": "system", "content": "You are an AI assistant that helps people." },
+    { "role": "user", "content": "Hello, how can I use Azure OpenAI?" }
+  ],
+  "max_tokens": 256,
+  "temperature": 0.7,
+  "top_p": 1
 }

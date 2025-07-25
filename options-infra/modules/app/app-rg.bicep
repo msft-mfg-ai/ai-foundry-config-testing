@@ -47,7 +47,6 @@ module foundry '../ai/ai-foundry.bicep' = {
     location: location
     appInsightsName: logAnalytics.outputs.applicationInsightsName
     publicNetworkAccess: 'Enabled'
-    deployModels: false
     agentSubnetId: agentSubnetId
   }
 }

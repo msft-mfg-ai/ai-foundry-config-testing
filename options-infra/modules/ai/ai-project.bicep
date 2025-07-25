@@ -202,4 +202,4 @@ output projectWorkspaceId string = foundry_project.properties.internalId
 
 output accountPrincipalId string = empty(managedIdentityId)
   ? foundry_project.identity.principalId
-  : identity.properties.principalId
+  : identity!.properties.principalId

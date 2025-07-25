@@ -6,13 +6,10 @@ param projectName string
 param accountName string
 param projectCapHost string
 
-var threadConnections = empty(cosmosDBConnection) ? [] : ['${cosmosDBConnection}']
+var threadStorageConnections = empty(cosmosDBConnection) ? [] : ['${cosmosDBConnection}']
 var storageConnections = empty(azureStorageConnection) ? [] : ['${azureStorageConnection}']
 var vectorStoreConnections = empty(aiSearchConnection) ? [] : ['${aiSearchConnection}']
-var aiConnections = empty(aiFoundryConnectionName) ? [] : ['${aiFoundryConnectionName}']
-
-var isStandardSetup = !empty(cosmosDBConnection) && !empty(azureStorageConnection) && !empty(aiSearchConnection)
-var isCustomAiConnection = !empty(aiConnections)
+var aiServicesConnections = empty(aiFoundryConnectionName) ? [] : ['${aiFoundryConnectionName}']
 
 resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
    name: accountName
@@ -23,31 +20,24 @@ resource project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-previ
   parent: account
 }
 
-resource projectCapabilityHostAgents 'Microsoft.CognitiveServices/accounts/projects/capabilityHosts@2025-04-01-preview' = if(!isStandardSetup && !isCustomAiConnection) {
+var settingsOptions = [
+  { key: 'capabilityHostKind', value: 'Agents'}
+  { key: 'threadStorageConnections', value: threadStorageConnections}
+  { key: 'storageConnections', value: storageConnections}
+  { key: 'vectorStoreConnections', value: vectorStoreConnections}
+  { key: 'aiServicesConnections', value: aiServicesConnections}
+]
+
+// convert properties to an object but exclude empty properties
+var propertiesObject = [for (item, key) in settingsOptions: (!empty(item.value) ? { '${item.key}': item.value }: {})]
+var properties = reduce(propertiesObject, {}, (cur, next) => union(cur, next))
+
+resource projectCapabilityHostStandardNoConnections 'Microsoft.CognitiveServices/accounts/projects/capabilityHosts@2025-04-01-preview' = {
   name: projectCapHost
   parent: project
-  properties: {
-    capabilityHostKind: 'Agents'
-  }
+  properties: properties
 }
 
-resource projectCapabilityHostBasic 'Microsoft.CognitiveServices/accounts/projects/capabilityHosts@2025-04-01-preview' = if(!isStandardSetup && isCustomAiConnection) {
-  name: projectCapHost
-  parent: project
-  properties: {
-    capabilityHostKind: 'Agents'
-    aiServicesConnections: aiConnections
-  }
-}
+output capabilityHostName string = projectCapHost
+output capabilityHostUrl string = 'https://portal.azure.com/${tenant().displayName}/resource/${project.id}/capabilityHosts/${projectCapHost}/overview'
 
-resource projectCapabilityHostStandard 'Microsoft.CognitiveServices/accounts/projects/capabilityHosts@2025-04-01-preview' = if(isStandardSetup && isCustomAiConnection) {
-  name: projectCapHost
-  parent: project
-  properties: {
-    capabilityHostKind: 'Agents'
-    vectorStoreConnections: vectorStoreConnections
-    storageConnections: storageConnections
-    threadStorageConnections: threadConnections
-    aiServicesConnections: aiConnections
-  }
-}

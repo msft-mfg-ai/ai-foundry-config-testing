@@ -17,45 +17,34 @@ param sku object = {
 param myIpAddress string = ''
 param managedIdentityId string = ''
 
-param textEmbeddings array = []
-param chatGpt_Standard object = {}
-param chatGpt_Premium object = {}
-param deployModels bool = true
-
 // --------------------------------------------------------------------------------------------------------------
 // Variables
 // --------------------------------------------------------------------------------------------------------------
 var resourceGroupName = resourceGroup().name
 var useExistingService = !empty(existing_CogServices_Name)
 var cognitiveServicesKeySecretName = 'cognitive-services-key'
-var deployments = deployModels
-  ? union(textEmbeddings, [
-      {
-        name: chatGpt_Standard.DeploymentName
-        model: {
-          format: 'OpenAI'
-          name: chatGpt_Standard.ModelName
-          version: chatGpt_Standard.ModelVersion
-        }
-        sku: chatGpt_Standard.?sku ?? {
-          name: 'Standard'
-          capacity: chatGpt_Standard.DeploymentCapacity
-        }
-      }
-      {
-        name: chatGpt_Premium.DeploymentName
-        model: {
-          format: 'OpenAI'
-          name: chatGpt_Premium.ModelName
-          version: chatGpt_Premium.ModelVersion
-        }
-        sku: chatGpt_Premium.?sku ?? {
-          name: 'Standard'
-          capacity: chatGpt_Premium.DeploymentCapacity
-        }
-      }
-    ])
-  : []
+param gpt41Deployment aiModelTDeploymentType?
+param deployments aiModelTDeploymentType[] = []
+
+@export()
+type aiModelTDeploymentType = {
+  @description('The name of the deployment')
+  name: string
+  properties: {
+    model: {
+      @description('The name of the model - often the same as the deployment name')
+      name: string
+      @description('The version of the model, e.g. "2024-11-20" or "0125"')
+      version: string
+      format: 'OpenAI'
+    }
+  }
+  sku: {
+    name: 'Standard' | 'GlobalStandard'
+    capacity: int
+  }?
+}
+
 // --------------------------------------------------------------------------------------------------------------
 // split managed identity resource ID to get the name
 var identityParts = split(managedIdentityId, '/')
@@ -141,15 +130,11 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = if 
 }
 
 @batchSize(1)
-resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2025-04-01-preview' = [
-  for deployment in deployments: if (!useExistingService && deployModels) {
+resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = [
+  for deployment in union(deployments, empty(gpt41Deployment) ? [] : [gpt41Deployment]): if (!useExistingService) {
     parent: account
     name: deployment.name
-    properties: {
-      model: deployment.model
-      // // use the policy in the deployment if it exists, otherwise default to null
-      // raiPolicyName: deployment.?raiPolicyName ?? null
-    }
+    properties: deployment.properties
     // use the sku in the deployment if it exists, otherwise default to standard
     sku: deployment.?sku ?? { name: 'Standard', capacity: 20 }
   }
@@ -165,13 +150,11 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = if (!
 // --------------------------------------------------------------------------------------------------------------
 output id string = useExistingService ? existingAccount.id : account.id
 output name string = useExistingService ? existingAccount.name : account.name
-output endpoint string = useExistingService ? existingAccount.properties.endpoint : account.properties.endpoint
+output endpoint string = useExistingService ? existingAccount!.properties.endpoint : account!.properties.endpoint
 output resourceGroupName string = useExistingService ? existing_CogServices_RG_Name : resourceGroupName
 output cognitiveServicesKeySecretName string = cognitiveServicesKeySecretName
 
-output textEmbeddings array = textEmbeddings
-output chatGpt_Standard object = chatGpt_Standard
 
 output accountPrincipalId string = empty(managedIdentityId)
-  ? account.identity.principalId
-  : identity.properties.principalId
+  ? (useExistingService ? (existingAccount.?identity.principalId ?? '') : account.?identity.principalId ?? '')
+  : (useExistingService ? '' : identity!.properties.principalId)
