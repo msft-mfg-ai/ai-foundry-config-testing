@@ -2,7 +2,6 @@ import * as types from '../types/types.bicep'
 
 param location string
 param appName string
-param capabilityHostName string = 'caphostproj'
 param agentSubnetId string
 param aiDependencies types.aiDependenciesType
 
@@ -129,7 +128,6 @@ module addProjectCapabilityHost '../ai/add-project-capability-host.bicep' = {
     azureStorageConnection: aiProject.outputs.azureStorageConnection
     aiSearchConnection: aiProject.outputs.aiSearchConnection
     aiFoundryConnectionName: aiProject.outputs.aiFoundryConnectionName
-    projectCapHost: capabilityHostName
   }
   dependsOn: [
     cosmosAccountRoleAssignments
@@ -167,6 +165,8 @@ module cosmosContainerRoleAssignments '../iam/cosmos-container-role-assignments.
   ]
 }
 
-output capabilityHostUrl string = 'https://portal.azure.com/${tenant().displayName}/resource/${aiProject.outputs.project_id}/capabilityHosts/${capabilityHostName}/overview'
-output aiConnectionUrl string = 'https://portal.azure.com/${tenant().displayName}/resource/${foundry.outputs.id}/connections/${aiProject.outputs.aiFoundryConnectionName}/overview'
+output capabilityHostUrl string = 'https://portal.azure.com/#/resource/${aiProject.outputs.project_id}/capabilityHosts/${addProjectCapabilityHost.outputs.capabilityHostName}/overview'
+output aiConnectionUrl string = 'https://portal.azure.com/#/resource/${foundry.outputs.id}/connections/${aiProject.outputs.aiFoundryConnectionName}/overview'
+output projectConnectionString string = aiProject.outputs.projectConnectionString
+
 output aiAccountName string = foundry.outputs.name

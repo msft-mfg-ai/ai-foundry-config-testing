@@ -24,9 +24,6 @@ param existingAiResourceId string
 ])
 param existingAiResourceKind string = 'AIServices' // Can be 'AzureOpenAI' or 'AIServices'
 
-@description('The name of the project capability host to be created')
-param projectCapHost string = 'caphostproj'
-
 var resourceToken = toLower(uniqueString(subscription().subscriptionId, location))
 
 resource app1ResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
@@ -58,7 +55,7 @@ module vnet 'modules/networking/vnet.bicep' = {
 
 
 module ai_dependencies './modules/ai/ai-dependencies-with-dns.bicep' = {
-  name: 'vnet-with-dependencies'
+  name: 'ai-dependencies-with-dns'
   scope: foundryDependenciesResourceGroup
   params: {
     peSubnetName: vnet.outputs.peSubnetName
@@ -75,7 +72,6 @@ module app1 'modules/app/app-rg.bicep' = {
   params: {
     location: location
     appName: app1Name
-    capabilityHostName: projectCapHost
     agentSubnetId: vnet.outputs.extraAgentSubnetIds[0] // Use the first agent subnet
     aiDependencies: ai_dependencies.outputs.aiDependencies
     existingAiResourceId: existingAiResourceId
@@ -89,7 +85,6 @@ module app2 'modules/app/app-rg.bicep' = {
   params: {
     location: location
     appName: app2Name
-    capabilityHostName: projectCapHost
     agentSubnetId: vnet.outputs.extraAgentSubnetIds[1] // Use the second agent subnet
     aiDependencies: ai_dependencies.outputs.aiDependencies
     existingAiResourceId: existingAiResourceId
@@ -127,3 +122,5 @@ output capability1HostUrl string = app1.outputs.capabilityHostUrl
 output capability2HostUrl string = app2.outputs.capabilityHostUrl
 output ai1ConnectionUrl string = app1.outputs.aiConnectionUrl
 output ai2ConnectionUrl string = app2.outputs.aiConnectionUrl
+output foundry1_connection_string string = app1.outputs.projectConnectionString
+output foundry2_connection_string string = app2.outputs.projectConnectionString

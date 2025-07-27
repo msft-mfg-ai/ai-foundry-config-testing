@@ -119,7 +119,7 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = if 
       isSharedToAll: true
       //isDefault: true  // not valid property
       credentials: {
-        key: appInsights.properties.InstrumentationKey
+        key: appInsights!.properties.InstrumentationKey
       }
       metadata: {
         ApiType: 'Azure'

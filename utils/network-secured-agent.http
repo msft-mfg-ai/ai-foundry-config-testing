@@ -4,7 +4,7 @@
 @rg={{$dotenv rg}}
 @capabilityName={{$dotenv capabilityName}}
 @foundryName={{$dotenv foundryName}}
-@foundryCapabilityName={{foundryName}}-capHost
+@foundryCapabilityName={{foundryName}}
 @projectName={{$dotenv projectName}}
 @vnetName={{$dotenv vnetName}}
 @subnetName={{$dotenv subnetName}}
@@ -22,6 +22,7 @@ Content-Type: application/json
 {
   "properties": {
     "capabilityHostKind": "Agents",
+    "customerSubnet": "/subscriptions/ece240d5-5c85-4dba-8829-29b9949adad1/resourceGroups/two-projects-rg/providers/Microsoft.Network/virtualNetworks/project-vnet-vsovqlu7h7d7c/subnets/agent-subnet"
   }
 }
 
@@ -31,7 +32,7 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 
 ### Delete Hub Capability Host
-DELETE {{baseUrl}}/{{foundryName}}/capabilityHosts/{{foundryCapabilityName}}?api-version=2025-06-01
+DELETE {{baseUrl}}/{{foundryName}}/capabilityHosts/{{foundryCapabilityName}}@aml_aiagentservice?api-version=2025-06-01
 Authorization: Bearer {{token}}
 
 ### Create Project Capability Host
@@ -44,10 +45,15 @@ Accept: application/json
   "properties": {
     "description": "This is a test capability host for project",
     "capabilityHostKind": "Agents",
-    "aiServicesConnections": ["emissionscopilotcogdev2bntpnqkfowt4"],
-    "vectorStoreConnections": ["project-search-hg42uwhsr2fla"],
-    "threadStorageConnections": ["project-cosmosdb-hg42uwhsr2fla"],
-    "storageConnections": ["projstoragehg42uwhsr2fla"]
+    "vectorStoreConnections": [
+      "project-search-vsovqlu7h7d7c"
+    ],
+    "storageConnections": [
+      "projstoragevsovqlu7h7d7c"
+    ],
+    "threadStorageConnections": [
+      "project-cosmosdb-vsovqlu7h7d7c"
+    ],
   }
 }
 
@@ -98,3 +104,7 @@ Content-Type: application/json
   "temperature": 0.7,
   "top_p": 1
 }
+
+#### Get progress
+GET https://management.azure.com/subscriptions/ece240d5-5c85-4dba-8829-29b9949adad1/providers/Microsoft.MachineLearningServices/locations/westus/mfeOperationsStatus/ch:ed9bc853-1082-4c77-af50-e9dd19b79c58:97777f42-7a92-49d1-a91f-2274546964d0?api-version=2025-06-01
+Authorization: Bearer {{token}}

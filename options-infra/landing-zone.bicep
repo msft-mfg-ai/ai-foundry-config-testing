@@ -1,5 +1,6 @@
 // template simulates a simple landing zone deployment with azure Open AI
 // this would go to AI-Subscription and build services that can be shared with app-landing-zone
+// Deployment creates 2 AI Services: one private and one public
 param location string = resourceGroup().location
 
 param resourceToken string = toLower(uniqueString(resourceGroup().id, location))
@@ -17,7 +18,16 @@ module identity './modules/iam/identity.bicep' = {
   }
 }
 
-module aiServices './modules/ai/ai-services.bicep' = {
+module logAnalytics './modules/monitor/loganalytics.bicep' = {
+  name: 'log-analytics'
+  params: {
+    newLogAnalyticsName: 'log-analytics'
+    newApplicationInsightsName: 'app-insights'
+    location: location
+  }
+}
+
+module aiServices './modules/ai/ai-foundry.bicep' = {
   name: 'ai-services'
   params: {
     managedIdentityId: identity.outputs.managedIdentityId
@@ -27,17 +37,19 @@ module aiServices './modules/ai/ai-services.bicep' = {
     deployments: [
       {
         name: 'gpt-35-turbo'
-        model: {
-          format: 'OpenAI'
-          name: 'gpt-35-turbo'
-          version: '0125'
+        properties: {
+          model: {
+            format: 'OpenAI'
+            name: 'gpt-35-turbo'
+            version: '0125'
+          }
         }
       }
     ]
   }
 }
 
-module aiServicesPublic './modules/ai/ai-services.bicep' = {
+module aiServicesPublic './modules/ai/ai-foundry.bicep' = {
   name: 'ai-services-public'
   params: {
     managedIdentityId: identity.outputs.managedIdentityId
@@ -47,16 +59,96 @@ module aiServicesPublic './modules/ai/ai-services.bicep' = {
     deployments: [
       {
         name: 'gpt-35-turbo'
-        model: {
-          format: 'OpenAI'
-          name: 'gpt-35-turbo'
-          version: '0125'
+        properties: {
+          model: {
+            format: 'OpenAI'
+            name: 'gpt-35-turbo'
+            version: '0125'
+          }
         }
       }
     ]
   }
 }
 
+module managedEnvironment 'modules/aca/container-app-environment.bicep' = {
+  name: 'managed-environment'
+  params: {
+    location: location
+    appInsightsConnectionString: logAnalytics.outputs.appInsightsConnectionString
+    name: 'aca${resourceToken}'
+    logAnalyticsWorkspaceResourceId: logAnalytics.outputs.logAnalyticsWorkspaceId
+    storages: []
+    publicNetworkAccess: 'Disabled'
+    infrastructureSubnetId: null
+  }
+}
+
+module appMcp './modules/aca/container-app.bicep' = {
+  name: 'app-mcp'
+  params: {
+    location: location
+    name: 'aca-mcp-${resourceToken}'
+    workloadProfileName: managedEnvironment.outputs.AZURE_RESOURCE_CONTAINER_APPS_WORKLOAD_PROFILE_NAME
+    applicationInsightsConnectionString: logAnalytics.outputs.appInsightsConnectionString
+    definition: {
+      settings: []
+    }
+    ingressTargetPort: 3001
+    existingImage: 'ghcr.io/karpikpl/wttr-docker:main'
+    userAssignedManagedIdentityClientId: identity.outputs.managedIdentityClientId
+    userAssignedManagedIdentityResourceId: identity.outputs.managedIdentityId
+    ingressExternal: true
+    cpu: '0.25'
+    memory: '0.5Gi'
+    scaleMaxReplicas: 1
+    scaleMinReplicas: 1
+    containerAppsEnvironmentResourceId: managedEnvironment.outputs.AZURE_RESOURCE_CONTAINER_APPS_ENVIRONMENT_ID
+    keyVaultName: null
+    probes: [
+      {
+        type: 'Readiness'
+        httpGet: {
+          path: '/health'
+          port: 3001
+        }
+      }
+    ]
+  }
+}
+
+module appOpenAPI './modules/aca/container-app.bicep' = {
+  name: 'app-openapi'
+  params: {
+    location: location
+    name: 'aca-openapi-${resourceToken}'
+    workloadProfileName: managedEnvironment.outputs.AZURE_RESOURCE_CONTAINER_APPS_WORKLOAD_PROFILE_NAME
+    applicationInsightsConnectionString: logAnalytics.outputs.appInsightsConnectionString
+    definition: {
+      settings: []
+    }
+    ingressTargetPort: 3000
+    existingImage: 'ghcr.io/karpikpl/wttr-docker:main'
+    userAssignedManagedIdentityClientId: identity.outputs.managedIdentityClientId
+    userAssignedManagedIdentityResourceId: identity.outputs.managedIdentityId
+    ingressExternal: true
+    cpu: '0.25'
+    memory: '0.5Gi'
+    scaleMaxReplicas: 1
+    scaleMinReplicas: 1
+    containerAppsEnvironmentResourceId: managedEnvironment.outputs.AZURE_RESOURCE_CONTAINER_APPS_ENVIRONMENT_ID
+    keyVaultName: null
+    probes: [
+      {
+        type: 'Readiness'
+        httpGet: {
+          path: '/health'
+          port: 3000
+        }
+      }
+    ]
+  }
+}
 
 // vnet doesn't have to be in the same RG as the AI Services
 // each agent needs it's own delegated subnet, which means we need as many subnets as agents
@@ -95,7 +187,7 @@ module ai_dependencies 'modules/ai-dependencies/standard-dependent-resources.bic
 // 2. Sets up private DNS zones for each service
 // 3. Links private DNS zones to the VNet for name resolution
 // 4. Configures network policies to restrict access to private endpoints only
-module privateEndpointAndDNS 'modules/networking/private-endpoint-and-dns.bicep' = if (doesFoundrySupportsCrossSubscriptionVnet){
+module privateEndpointAndDNS 'modules/networking/private-endpoint-and-dns.bicep' = if (doesFoundrySupportsCrossSubscriptionVnet) {
   name: 'private-endpoints-and-dns'
   params: {
     aiAccountName: aiServices.outputs.name // AI Services to secure

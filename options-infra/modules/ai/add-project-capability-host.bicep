@@ -4,7 +4,7 @@ param aiSearchConnection string = ''
 param aiFoundryConnectionName string = ''
 param projectName string
 param accountName string
-param projectCapHost string
+param projectCapHost string = 'projcaphost'
 
 var threadStorageConnections = empty(cosmosDBConnection) ? [] : ['${cosmosDBConnection}']
 var storageConnections = empty(azureStorageConnection) ? [] : ['${azureStorageConnection}']
@@ -39,5 +39,5 @@ resource projectCapabilityHostStandardNoConnections 'Microsoft.CognitiveServices
 }
 
 output capabilityHostName string = projectCapHost
-output capabilityHostUrl string = 'https://portal.azure.com/${tenant().displayName}/resource/${project.id}/capabilityHosts/${projectCapHost}/overview'
+output capabilityHostUrl string = 'https://portal.azure.com/#/resource/${project.id}/capabilityHosts/${projectCapHost}/overview'
 
