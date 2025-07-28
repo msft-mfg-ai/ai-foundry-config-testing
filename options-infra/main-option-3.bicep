@@ -1,90 +1,126 @@
-param location string = resourceGroup().location
-@description('The resource ID of the existing Azure OpenAI resource.')
-param existingAoaiResourceId string = ''
+// This bicep files deploys two resource groups:
+// 1. The main resource group for the AI Project and Foundry
+// 2. The resource group for the AI Foundry dependencies, such as VNet and
+//    private endpoints for AI Search, Azure Storage and Cosmos DB
+// The AI Project is created in the main resource group, but it uses the dependencies
+// from the second resource group and AI Foundry from a different subscription, included by existingAiResourceId
+targetScope = 'subscription'
 
-var resourceToken = toLower(uniqueString(resourceGroup().id, location))
+param location string
+param applicationName string = 'my-app'
+param app1Name string = '${applicationName}-1'
+param app2Name string = '${applicationName}-2'
+var app1ResourceGroupName = '${app1Name}-rg'
+var app2ResourceGroupName = '${app2Name}-rg'
+var foundryDependenciesResourceGroupName = '${applicationName}-foundry-dependencies-rg'
 
-// --------------------------------------------------------------------------------------------------------------
-// -- Log Analytics Workspace and App Insights ------------------------------------------------------------------
-// --------------------------------------------------------------------------------------------------------------
-module logAnalytics './modules/monitor/loganalytics.bicep' = {
-  name: 'law'
+@description('The resource ID of the existing Ai resource - Azure Open AI, AI Services or AI Foundry.')
+param existingAiResourceId string
+
+@description('The Kind of AI Service, can be "AzureOpenAI" or "AIServices". For AI Foundry use AI Services. Its not recommended to use Azure OpenAI resource, since that only provided access to OpenAI models.')
+@allowed([
+  'AzureOpenAI'
+  'AIServices'
+])
+param existingAiResourceKind string = 'AIServices' // Can be 'AzureOpenAI' or 'AIServices'
+
+var resourceToken = toLower(uniqueString(subscription().subscriptionId, location))
+
+resource app1ResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+  name: app1ResourceGroupName
+  location: location
+}
+resource app2ResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+  name: app2ResourceGroupName
+  location: location
+}
+resource foundryDependenciesResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+  name: foundryDependenciesResourceGroupName
+  location: location
+}
+
+
+
+// vnet doesn't have to be in the same RG as the AI Services
+// each agent needs it's own delegated subnet, which means we need as many subnets as agents
+module vnet 'modules/networking/vnet.bicep' = {
+  name: 'vnet'
+  scope: foundryDependenciesResourceGroup
   params: {
-    newLogAnalyticsName: 'project-log-analytics'
-    newApplicationInsightsName: 'project-app-insights'
+    vnetName: 'project-vnet-${resourceToken}'
     location: location
+    extraAgentSubnets: 2
   }
 }
 
-module identity './modules/iam/identity.bicep' = {
-  name: 'app-identity'
+
+module ai_dependencies './modules/ai/ai-dependencies-with-dns.bicep' = {
+  name: 'ai-dependencies-with-dns'
+  scope: foundryDependenciesResourceGroup
   params: {
-    identityName: 'app-project-identity'
-    location: location
+    peSubnetName: vnet.outputs.peSubnetName
+    vnetResourceId: vnet.outputs.virtualNetworkId
+    resourceToken: resourceToken
+    aiServicesName: '' // create AI serviced PE later
+    aiAccountNameResourceGroupName: ''
   }
 }
 
-module aiServices './modules/ai/ai-services.bicep' = {
-  name: 'ai-services'
+module app1 'modules/app/app-rg.bicep' = {
+  name: 'app-${app1Name}'
+  scope: app1ResourceGroup
   params: {
-    managedIdentityId: identity.outputs.managedIdentityId
-    name: 'ai-services-${resourceToken}'
     location: location
-    publicNetworkAccess: 'enabled'
-    deployments: [
-      {
-        name: 'gpt-35-turbo'
-        model: {
-          format: 'OpenAI'
-          name: 'gpt-35-turbo'
-          version: '0125'
-        }
-      }
-    ]
+    appName: app1Name
+    agentSubnetId: vnet.outputs.extraAgentSubnetIds[0] // Use the first agent subnet
+    aiDependencies: ai_dependencies.outputs.aiDependencies
+    existingAiResourceId: existingAiResourceId
+    existingAiResourceKind: existingAiResourceKind
   }
 }
 
-module oai './modules/ai/azure-oai.bicep' = {
-  name: 'oai'
+module app2 'modules/app/app-rg.bicep' = {
+  name: 'app-${app2Name}'
+  scope: app2ResourceGroup
   params: {
-    managedIdentityId: identity.outputs.managedIdentityId
-    name: 'oai-${resourceToken}'
     location: location
-    publicNetworkAccess: 'enabled'
-    deployments: [
-      {
-        name: 'gpt-35-turbo'
-        model: {
-          format: 'OpenAI'
-          name: 'gpt-35-turbo'
-          version: '0125'
-        }
-      }
-    ]
+    appName: app2Name
+    agentSubnetId: vnet.outputs.extraAgentSubnetIds[1] // Use the second agent subnet
+    aiDependencies: ai_dependencies.outputs.aiDependencies
+    existingAiResourceId: existingAiResourceId
+    existingAiResourceKind: existingAiResourceKind
   }
 }
 
-module foundry './modules/ai/ai-foundry.bicep' = {
-  name: 'foundry'
+module ai1_private_endpoint 'modules/networking/ai-pe-dns.bicep' = {
+  name: '${app1Name}-ai-private-endpoint'
+  scope: foundryDependenciesResourceGroup
   params: {
-    managedIdentityId: identity.outputs.managedIdentityId
-    name: 'ai-foundry-${resourceToken}'
-    location: location
-    appInsightsName: logAnalytics.outputs.applicationInsightsName
-    publicNetworkAccess: 'enabled'
-    deployModels: false
+    aiAccountName: app1.outputs.aiAccountName
+    aiAccountNameResourceGroup: app1ResourceGroup.name
+    peSubnetId: vnet.outputs.peSubnetId
+    resourceToken: resourceToken
+    vnetId: vnet.outputs.virtualNetworkId
+    existingDnsZones: ai_dependencies.outputs.DNSZones
   }
 }
 
-module aiProject './modules/ai/ai-project.bicep' = {
-  name: 'ai-project'
+module ai2_private_endpoint 'modules/networking/ai-pe-dns.bicep' = {
+  name: '${app2Name}-ai-private-endpoint'
+  scope: foundryDependenciesResourceGroup
   params: {
-    foundry_name: foundry.outputs.name
-    location: location
-    project_name: 'ai-project-${resourceToken}'
-    project_description: 'AI Project Description'
-    display_name: 'AI Project Display Name'
-    managedIdentityId: identity.outputs.managedIdentityId
-    existingAoaiResourceId: empty(existingAoaiResourceId) ? aiServices.outputs.id : existingAoaiResourceId
+    aiAccountName: app2.outputs.aiAccountName
+    aiAccountNameResourceGroup: app2ResourceGroup.name
+    peSubnetId: vnet.outputs.peSubnetId
+    resourceToken: resourceToken
+    vnetId: vnet.outputs.virtualNetworkId
+    existingDnsZones: ai_dependencies.outputs.DNSZones
   }
 }
+
+output capability1HostUrl string = app1.outputs.capabilityHostUrl
+output capability2HostUrl string = app2.outputs.capabilityHostUrl
+output ai1ConnectionUrl string = app1.outputs.aiConnectionUrl
+output ai2ConnectionUrl string = app2.outputs.aiConnectionUrl
+output foundry1_connection_string string = app1.outputs.projectConnectionString
+output foundry2_connection_string string = app2.outputs.projectConnectionString

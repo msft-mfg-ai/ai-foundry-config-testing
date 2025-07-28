@@ -1,6 +1,7 @@
-using 'main.bicep'
+using 'main-option-2.bicep'
 
 // Parameters for the main Bicep template
-param location = 'eastus2'
-param existingAoaiResourceId = '/subscriptions/1c083bf3-30ac-4804-aa81-afddc58c78dc/resourceGroups/aoai-rgp-02/providers/Microsoft.CognitiveServices/accounts/aoai-03'
+param location = 'westus'
+// Option 2 doesn't use VNETs or private endpoints, so AI services have to be public
+param existingAiResourceId = 'TBD'
 
