@@ -1,9 +1,8 @@
-// This bicep files deploys two resource groups:
-// 1. The main resource group for the AI Project and Foundry
-// 2. The resource group for the AI Foundry dependencies, such as VNet and
+// This bicep files deploys one resource group with the following resources:
+// 1. The AI Foundry dependencies, such as VNet and
 //    private endpoints for AI Search, Azure Storage and Cosmos DB
-// The AI Project is created in the main resource group, but it uses the dependencies
-// from the second resource group and AI Foundry from a different subscription, included by existingAiResourceId
+// 2. The AI Foundry itself
+// 3. Two AI Projects with the capability hosts - in Foundry Standard mode
 targetScope = 'resourceGroup'
 
 param location string = resourceGroup().location

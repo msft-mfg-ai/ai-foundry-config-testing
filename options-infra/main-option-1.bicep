@@ -1,4 +1,4 @@
-// creates ai foundry and project - all self contained
+// creates ai foundry and project - all self contained no BYO resources
 param location string = resourceGroup().location
 
 var resourceToken = toLower(uniqueString(resourceGroup().id, location))
