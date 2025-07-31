@@ -150,6 +150,9 @@ Azure API Management can be used as [AI Gateway](https://learn.microsoft.com/en-
 * [AI Gateway Workshop](https://azure-samples.github.io/AI-Gateway/)
 * [AI Gateway Samples](https://github.com/Azure-Samples/ai-gateway)
  
+## Mini Landing Zone
+
+Bicep files in [lading-zone.bicep](./options-infra/landing-zone.bicep) provide very simple infrastructure that can be used for testing external foundry scenarios.
 
 ## Deployment Instructions
 
@@ -251,6 +254,29 @@ az deployment group create `
 ```
 
 ### Troubleshooting
+
+#### Troubleshooting Agents
+
+The easiest way to test agents BYO network capabilities is by using OpenAPI tool for non public API.
+
+[Agents Testing workbook](./agents/testing-agents.ipynb) offers scripts for creating, configuring and running agents in Foundry.
+
+For Testing OpenAPI and MCP, you can use [weather-MCP-OpenAPI-server](https://github.com/karpikpl/weather-MCP-OpenAPI-server). Deploy it to Azure Container Apps without any additional configuration.
+
+```bash
+docker run -it --rm -p 3000:3000 -p 3001:3001 ghcr.io/karpikpl/weather-mcp-openapi-server:latest
+```
+
+For Troubleshooting OpenAPI and MCP, use [dev tunnels](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/).
+
+```bash
+devtunnel user login
+devtunnel port create -p 3000
+devtunnel port create -p 3001
+devtunnel host
+```
+
+#### Troubleshooting Bicep
 
 * If you get permission errors, ensure your account has Owner access to the subscription/resource group
 * If model deployments fail, check that your subscription has quota for the AI models
