@@ -25,7 +25,7 @@ Network and BYO resources apply only to Agent Service, not to other features of 
 >[!IMPORTANT]
 > BYO Network requires BYO Storage and cannot be applied separately.
 
-Infrastructure is using Bicep files provided by the Product Team in [15 private network standard agent setup](https://github.com/azure-ai-foundry/foundry-samples/tree/main/samples/microsoft/infrastructure-setup/15-private-network-standard-agent-setup).
+Bicep files in this repository, for Foundry Standard Setup were provided by the Product Team in [15 private network standard agent setup](https://github.com/azure-ai-foundry/foundry-samples/tree/main/samples/microsoft/infrastructure-setup/15-private-network-standard-agent-setup).
 
 Agent Service uses:
  
@@ -136,7 +136,7 @@ Each application team can use their project with models hosted by Foundry.
  >[!NOTE]
 > Sample deployment for two-project solution is available here: [Bicep](./options-infra/main-option-4.bicep)
 
-## Option 45 - using AI Gateway (APIM) 
+## Option 5 - using AI Gateway (APIM) 
 
 Azure API Management can be used as [AI Gateway](https://learn.microsoft.com/en-us/azure/api-management/genai-gateway-capabilities) for AI Foundry.
 
