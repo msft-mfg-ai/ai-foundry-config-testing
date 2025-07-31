@@ -275,6 +275,11 @@ devtunnel port create -p 3000
 devtunnel port create -p 3001
 devtunnel host
 ```
+#### Troubleshooting Capability Hosts
+
+The most common issue with Foundry Standard deployment is misconfiguration of capability hosts or temperary errors in it's creation.
+
+Use tools available in [utils](./utils/) to view/modify/delete capability hosts.
 
 #### Troubleshooting Bicep
 
