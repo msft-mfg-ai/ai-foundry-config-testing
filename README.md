@@ -1,4 +1,4 @@
-> **AI Foundry Config Testing**
+> **AI Foundry Deployment Options**
 >
 > This repository provides Bicep templates and deployment instructions for setting up Azure AI Foundry landing zones with various networking and resource sharing options. It is intended for Azure administrators and application teams deploying AI workloads with private networking, BYO resources, and cost management best practices.
 >
