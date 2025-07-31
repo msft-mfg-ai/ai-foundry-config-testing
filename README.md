@@ -33,7 +33,7 @@ Agent Service uses:
 * **Azure OpenAI** for models
 * **Storage** for file storage
 * **AI Search** for agent indexes
-* **Subnet** for certain Agent tool execution (OpenAPI, MCP, etc.)
+* **Subnet** for certain Agent tool execution (OpenAPI, MCP, etc.) [(BYO) private virtual network](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/virtual-networks).
 
 > [!WARNING]
 > Your existing Azure Cosmos DB for NoSQL account used in a standard setup must have a total throughput limit of at least 3000 RU/s. Both provisioned throughput and serverless are supported.
@@ -41,8 +41,6 @@ Agent Service uses:
 
 > [!NOTE]
 > Currently there's no way to manage cost of shared resources (Cosmos, Search) in order to execute chargeback to application teams.
-
- Azure AI Foundry Agent Service offers Standard Setup with private networking environment setup, allowing you to bring your own [(BYO) private virtual network](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/virtual-networks).
 
 ## Cost management
 
