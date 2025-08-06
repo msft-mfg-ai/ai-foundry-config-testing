@@ -10,27 +10,61 @@ param aiServicesPublicName string = 'foundry-landing-zone-${location}-PUBLIC-${r
 // Foundry doesn't support cross-subscription VNet injection or cross subscription resources, so we need to deploy it in the same subscription
 var doesFoundrySupportsCrossSubscriptionVnet = false
 
-module identity './modules/iam/identity.bicep' = {
-  name: 'app-identity'
+module identity 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.0' = {
+  name: 'mgmtidentity-${uniqueString(deployment().name, location)}'
   params: {
-    identityName: 'app-project-identity'
+    name: 'landing-zone-identity-${resourceToken}'
     location: location
   }
 }
 
-module logAnalytics './modules/monitor/loganalytics.bicep' = {
-  name: 'log-analytics'
+module logAnalytics 'br/public:avm/res/operational-insights/workspace:0.12.0' = {
+  name: 'log-${resourceToken}'
   params: {
-    newLogAnalyticsName: 'log-analytics'
-    newApplicationInsightsName: 'app-insights'
-    location: location
+    name: 'loganaly01'
+    dataRetention: 30
+    features: { immediatePurgeDataOn30Days: true, disableLocalAuth: false }
+    managedIdentities: {
+      userAssignedResourceIds: [identity.outputs.resourceId]
+    }
+  }
+}
+
+module appInsights 'br/public:avm/res/insights/component:0.4.2' = {
+  name: 'appinsights-${resourceToken}'
+  params: {
+    name: 'appinsights01'
+    workspaceResourceId: logAnalytics.outputs.resourceId
+    applicationType: 'web'
+    disableLocalAuth: false
+    roleAssignments: [
+      {
+        roleDefinitionIdOrName: 'Monitoring Contributor'
+        principalId: identity.outputs.principalId
+        principalType: 'ServicePrincipal'
+      }
+    ]
+  }
+}
+
+module apps './modules/function/function-app-with-plan.bicep' = {
+  name: 'function-app'
+  params: {
+    name: 'apps'
+    applicationInsightResourceId: appInsights.outputs.resourceId
+    artifactUrl: 'https://github.com/karpikpl/weather-MCP-OpenAPI-server/blob/main/artifacts/azure-functions-package.zip?raw=true'
+    managedIdentityId: identity.outputs.resourceId
+    location: 'canadacentral'
+    privateEndpointSubnetResourceId: null // No private endpoint for this example
+    logAnalyticsWorkspaceResourceId: logAnalytics.outputs.resourceId
+    resourceToken: resourceToken
   }
 }
 
 module aiServices './modules/ai/ai-foundry.bicep' = {
   name: 'ai-services'
   params: {
-    managedIdentityId: identity.outputs.managedIdentityId
+    managedIdentityId: identity.outputs.resourceId
     name: aiServicesName
     location: location
     publicNetworkAccess: 'Disabled' // 'enabled' or 'disabled'
@@ -52,7 +86,7 @@ module aiServices './modules/ai/ai-foundry.bicep' = {
 module aiServicesPublic './modules/ai/ai-foundry.bicep' = {
   name: 'ai-services-public'
   params: {
-    managedIdentityId: identity.outputs.managedIdentityId
+    managedIdentityId: identity.outputs.resourceId
     name: aiServicesPublicName
     location: location
     publicNetworkAccess: 'Enabled' // 'enabled' or 'disabled'
@@ -75,9 +109,9 @@ module managedEnvironment 'modules/aca/container-app-environment.bicep' = {
   name: 'managed-environment'
   params: {
     location: location
-    appInsightsConnectionString: logAnalytics.outputs.appInsightsConnectionString
+    appInsightsConnectionString: appInsights.outputs.connectionString
     name: 'aca${resourceToken}'
-    logAnalyticsWorkspaceResourceId: logAnalytics.outputs.logAnalyticsWorkspaceId
+    logAnalyticsWorkspaceResourceId: logAnalytics.outputs.resourceId
     storages: []
     publicNetworkAccess: 'Disabled'
     infrastructureSubnetId: null
@@ -90,14 +124,14 @@ module appMcp './modules/aca/container-app.bicep' = {
     location: location
     name: 'aca-mcp-${resourceToken}'
     workloadProfileName: managedEnvironment.outputs.AZURE_RESOURCE_CONTAINER_APPS_WORKLOAD_PROFILE_NAME
-    applicationInsightsConnectionString: logAnalytics.outputs.appInsightsConnectionString
+    applicationInsightsConnectionString: appInsights.outputs.connectionString
     definition: {
       settings: []
     }
     ingressTargetPort: 3001
     existingImage: 'ghcr.io/karpikpl/wttr-docker:main'
-    userAssignedManagedIdentityClientId: identity.outputs.managedIdentityClientId
-    userAssignedManagedIdentityResourceId: identity.outputs.managedIdentityId
+    userAssignedManagedIdentityClientId: identity.outputs.resourceId
+    userAssignedManagedIdentityResourceId: identity.outputs.resourceId
     ingressExternal: true
     cpu: '0.25'
     memory: '0.5Gi'
@@ -123,14 +157,14 @@ module appOpenAPI './modules/aca/container-app.bicep' = {
     location: location
     name: 'aca-openapi-${resourceToken}'
     workloadProfileName: managedEnvironment.outputs.AZURE_RESOURCE_CONTAINER_APPS_WORKLOAD_PROFILE_NAME
-    applicationInsightsConnectionString: logAnalytics.outputs.appInsightsConnectionString
+    applicationInsightsConnectionString: appInsights.outputs.connectionString
     definition: {
       settings: []
     }
     ingressTargetPort: 3000
     existingImage: 'ghcr.io/karpikpl/wttr-docker:main'
-    userAssignedManagedIdentityClientId: identity.outputs.managedIdentityClientId
-    userAssignedManagedIdentityResourceId: identity.outputs.managedIdentityId
+    userAssignedManagedIdentityClientId: identity.outputs.resourceId
+    userAssignedManagedIdentityResourceId: identity.outputs.resourceId
     ingressExternal: true
     cpu: '0.25'
     memory: '0.5Gi'

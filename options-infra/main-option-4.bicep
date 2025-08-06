@@ -7,8 +7,17 @@ targetScope = 'resourceGroup'
 
 param location string = resourceGroup().location
 
-var resourceToken = toLower(uniqueString(resourceGroup().id, location))
+@export()
+type apiType = {
+  name: string
+  resourceId: string
+  type: string
+  dnsZoneName: string // The DNS zone name for the private endpoint
+}
 
+param externalApis apiType[] = [] // Array of external API definitions
+
+var resourceToken = toLower(uniqueString(resourceGroup().id, location))
 
 // vnet doesn't have to be in the same RG as the AI Services
 // each agent needs it's own delegated subnet, which means we need as many subnets as agents
@@ -19,7 +28,6 @@ module vnet './modules/networking/vnet.bicep' = {
     location: location
   }
 }
-
 
 module ai_dependencies './modules/ai/ai-dependencies-with-dns.bicep' = {
   name: 'ai-dependencies-with-dns'
@@ -43,7 +51,6 @@ module logAnalytics './modules/monitor/loganalytics.bicep' = {
     location: location
   }
 }
-
 
 module foundry './modules/ai/ai-foundry.bicep' = {
   name: 'foundry-shared'
@@ -91,6 +98,55 @@ module project2 './modules/ai/ai-project-with-caphost.bicep' = {
     project1 // Ensure project1 is created before project2
   ]
 }
+
+module dnsSites 'br/public:avm/res/network/private-dns-zone:0.7.1' = {
+  name: 'dns-sites'
+  params: {
+    name: 'privatelink.azurewebsites.net'
+    virtualNetworkLinks: [
+      {
+        virtualNetworkResourceId: vnet.outputs.virtualNetworkId
+      }
+    ]
+  }
+}
+
+module dnsAca 'br/public:avm/res/network/private-dns-zone:0.7.1' = {
+  name: 'dns-aca'
+  params: {
+    name: 'privatelink.${location}.azurecontainerapps.io'
+    virtualNetworkLinks: [
+      {
+        virtualNetworkResourceId: vnet.outputs.virtualNetworkId
+      }
+    ]
+  }
+}
+
+var dnsZones = {
+  'privatelink.azurewebsites.net': dnsSites.outputs.resourceId
+  'privatelink.${location}.azurecontainerapps.io': dnsAca.outputs.resourceId
+}
+
+// private endpoints for external APIs
+module privateEndpoints './modules/networking/private-endpoint.bicep' = [
+  for (api, index) in externalApis: {
+    name: 'private-endpoint-${api.name}'
+    params: {
+      privateEndpointName: 'pe-${api.name}'
+      location: location
+      subnetId: vnet.outputs.peSubnetId // Use the private endpoint subnet
+      targetResourceId: api.resourceId
+      groupIds: [api.type] // Use the type as group ID
+      zoneConfigs: [
+        {
+          name: api.dnsZoneName
+          privateDnsZoneId: dnsZones[api.dnsZoneName]
+        }
+      ]
+    }
+  }
+]
 
 output capability1HostUrl string = project1.outputs.capabilityHostUrl
 output capability2HostUrl string = project2.outputs.capabilityHostUrl

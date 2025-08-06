@@ -16,7 +16,13 @@ param groupIds array
 @description('The tags to associate with the private endpoint')
 param tags object = {}
 
-param zoneConfigs array = []
+@export()
+type zoneConfigType = {
+  name: string
+  privateDnsZoneId: string
+}
+
+param zoneConfigs zoneConfigType[] = []
 
 var nicName = '${privateEndpointName}-nic'
 
