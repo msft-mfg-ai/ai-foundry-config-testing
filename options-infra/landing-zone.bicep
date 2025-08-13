@@ -128,8 +128,8 @@ module appMcp './modules/aca/container-app.bicep' = {
     definition: {
       settings: []
     }
-    ingressTargetPort: 3001
-    existingImage: 'ghcr.io/karpikpl/wttr-docker:main'
+    ingressTargetPort: 3000
+    existingImage: 'ghcr.io/karpikpl/sample-mcp-fastmcp-python:main'
     userAssignedManagedIdentityClientId: identity.outputs.resourceId
     userAssignedManagedIdentityResourceId: identity.outputs.resourceId
     ingressExternal: true
@@ -144,7 +144,7 @@ module appMcp './modules/aca/container-app.bicep' = {
         type: 'Readiness'
         httpGet: {
           path: '/health'
-          port: 3001
+          port: 3000
         }
       }
     ]

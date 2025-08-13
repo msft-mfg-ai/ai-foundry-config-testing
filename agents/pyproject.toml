@@ -4,6 +4,14 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
+    "azure-ai-agents>=1.2.0b1",
+    "azure-search-documents>=11.6.0b12",
+    "ipykernel>=6.30.1",
     "jsonref>=1.1.0",
-    "semantic-kernel[azure]>=1.35.0",
+    "semantic-kernel[azure]>=1.35.2",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "black[jupyter]>=25.1.0",
 ]
