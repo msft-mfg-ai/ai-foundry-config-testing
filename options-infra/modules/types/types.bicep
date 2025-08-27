@@ -33,7 +33,7 @@ type DnsZonesType = {
   'privatelink.openai.azure.com': DNSZoneType?
   'privatelink.cognitiveservices.azure.com': DNSZoneType?
   'privatelink.search.windows.net': DNSZoneType?
-#disable-next-line no-hardcoded-env-urls
+  #disable-next-line no-hardcoded-env-urls
   'privatelink.blob.core.windows.net': DNSZoneType?
   'privatelink.documents.azure.com': DNSZoneType?
 }
@@ -64,4 +64,12 @@ type DNSZoneType = {
 
   @description('The subscription ID where the private DNS zone is deployed.')
   subscriptionId: string
+}
+
+@export()
+type HubVnetRangesType = {
+  inboundSubnet: string
+  outboundSubnet: string
+  peSubnet: string
+  privateDnsIp: string
 }

@@ -6,6 +6,13 @@ param location string = resourceGroup().location
 
 var resourceToken = toLower(uniqueString(resourceGroup().id, location))
 
+module hubCidr './modules/private-dns/private-dns-cidr.bicep' = {
+  name: 'hubCidr'
+  params: {
+    vnetAddressPrefix: '172.16.0.0/24'
+  }
+}
+
 // vnet doesn't have to be in the same RG as the AI Services
 // each agent needs it's own delegated subnet, which means we need as many subnets as agents
 module vnet './modules/networking/vnet.bicep' = {
@@ -13,7 +20,8 @@ module vnet './modules/networking/vnet.bicep' = {
   params: {
     vnetName: 'project-vnet-${resourceToken}'
     location: location
-    vnetAddressPrefix: '172.0.0.0/16'
+    vnetAddressPrefix: '172.17.0.0/22'
+    customDNS: privateDns.outputs.privateDnsIp
   }
 }
 
@@ -21,10 +29,7 @@ module privateDns './modules/private-dns/private-dns.bicep' = {
   name: 'private-dns'
   params: {
     location: location
-    vnetAddressPrefix: '172.168.0.0/16'
-    vnetResourceIdsForLink: [
-      vnet.outputs.virtualNetworkId
-    ]
+    hubVnetRanges: hubCidr.outputs.hubVnetRanges
   }
 }
 
@@ -48,6 +53,105 @@ module logAnalytics './modules/monitor/loganalytics.bicep' = {
     newLogAnalyticsName: 'log-analytics'
     newApplicationInsightsName: 'app-insights'
     location: location
+  }
+}
+
+module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.3.0' = {
+  name: 'aiFoundryDeployment'
+  params: {
+    // Required parameters
+    baseName: 'foundry'
+    // Non-required parameters
+    aiFoundryConfiguration: {
+      allowProjectManagement: true
+      includeCapabilityHost: true
+      location: location
+      networking: {
+        aiServicesPrivateDnsZoneId: '<aiServicesPrivateDnsZoneResourceId>'
+        cognitiveServicesPrivateDnsZoneId: '<cognitiveServicesPrivateDnsZoneResourceId>'
+        openAiPrivateDnsZoneId: '<openAiPrivateDnsZoneResourceId>'
+      }
+      project: {
+        name: 'ai-project-1'
+      }
+      roleAssignments: [
+        {
+          principalId: '<principalId>'
+          principalType: 'ServicePrincipal'
+          roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
+        }
+      ]
+    }
+    aiModelDeployments: [
+      {
+        model: {
+          format: 'OpenAI'
+          name: 'gpt-4o'
+          version: '2024-11-20'
+        }
+        name: 'gpt-4o'
+        sku: {
+          capacity: 1
+          name: 'Standard'
+        }
+      }
+    ]
+    aiSearchConfiguration: {
+      name: '<name>'
+      privateDnsZoneId: '<privateDnsZoneResourceId>'
+      roleAssignments: [
+        {
+          principalId: '<principalId>'
+          principalType: 'ServicePrincipal'
+          roleDefinitionIdOrName: 'Search Index Data Contributor'
+        }
+      ]
+    }
+    cosmosDbConfiguration: {
+      name: '<name>'
+      privateDnsZoneId: '<privateDnsZoneResourceId>'
+      roleAssignments: [
+        {
+          principalId: '<principalId>'
+          principalType: 'ServicePrincipal'
+          roleDefinitionIdOrName: 'Cosmos DB Account Reader Role'
+        }
+      ]
+    }
+    includeAssociatedResources: true
+    keyVaultConfiguration: {
+      name: '<name>'
+      privateDnsZoneId: '<privateDnsZoneResourceId>'
+      roleAssignments: [
+        {
+          principalId: '<principalId>'
+          principalType: 'ServicePrincipal'
+          roleDefinitionIdOrName: 'Key Vault Secrets User'
+        }
+      ]
+    }
+    location: '<location>'
+    lock: {
+      kind: 'CanNotDelete'
+      name: '<name>'
+    }
+    privateEndpointSubnetId: '<privateEndpointSubnetResourceId>'
+    storageAccountConfiguration: {
+      blobPrivateDnsZoneId: '<blobPrivateDnsZoneResourceId>'
+      name: '<name>'
+      roleAssignments: [
+        {
+          principalId: '<principalId>'
+          principalType: 'ServicePrincipal'
+          roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+        }
+      ]
+    }
+    tags: {
+      Environment: 'Example'
+      'hidden-title': 'This is visible in the resource name'
+      Role: 'DeploymentValidation'
+    }
   }
 }
 

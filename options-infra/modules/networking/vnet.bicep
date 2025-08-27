@@ -32,6 +32,8 @@ param vnetAddressPrefix string = ''
 param agentSubnetPrefix string = ''
 param extraAgentSubnets int = 0 // Number of additional agent subnets to create
 
+param customDNS string = ''
+
 @description('Address prefix for the private endpoint subnet')
 param peSubnetPrefix string = ''
 var defaultVnetAddressPrefix = '192.168.0.0/16'
@@ -75,6 +77,11 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
     addressSpace: {
       addressPrefixes: [
         vnetAddress
+      ]
+    }
+    dhcpOptions: empty(customDNS) ? null : {
+      dnsServers: [
+        customDNS
       ]
     }
     subnets: union(extraAgentSubnetObjects, [

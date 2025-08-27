@@ -1,34 +1,30 @@
-param location string = resourceGroup().location
-param vnetAddressPrefix string = '172.168.0.0/16'
-param vnetResourceIdsForLink string[] = []
+import * as types from '../types/types.bicep'
 
-var defaultVnetAddressPrefix = '172.168.0.0/16'
-var vnetAddress = empty(vnetAddressPrefix) ? defaultVnetAddressPrefix : vnetAddressPrefix
-var inboundSubnet = cidrSubnet(vnetAddress, 27, 0)
-var outboundSubnet = cidrSubnet(vnetAddress, 27, 1)
-var peSubnet = cidrSubnet(vnetAddress, 27, 2)
-var inboundPrivateIp = cidrHost(inboundSubnet, 5)
+param location string = resourceGroup().location
+param vnetResourceIdsForLink string[] = []
+param peeringResourceId string[] = []
+param hubVnetRanges types.HubVnetRangesType
 
 module virtualNetwork 'br/public:avm/res/network/virtual-network:0.7.0' = {
   name: 'name'
   params: {
-    addressPrefixes: [defaultVnetAddressPrefix]
+    addressPrefixes: [hubVnetRanges.inboundSubnet]
     name: 'hub-vnet'
     location: location
     subnets: [
       {
         name: 'inbound-snet'
-        addressPrefix: inboundSubnet
+        addressPrefix: hubVnetRanges.inboundSubnet
         delegation: 'Microsoft.Network/dnsResolvers'
       }
       {
         name: 'outbound-snet'
-        addressPrefix: outboundSubnet
+        addressPrefix: hubVnetRanges.outboundSubnet
         delegation: 'Microsoft.Network/dnsResolvers'
       }
       {
         name: 'pe-snet'
-        addressPrefix: peSubnet
+        addressPrefix: hubVnetRanges.peSubnet
       }
     ]
     peerings: [
@@ -52,7 +48,7 @@ module dnsResolver 'br/public:avm/res/network/dns-resolver:0.5.4' = {
       {
         name: 'inbound-endpoint-1'
         subnetResourceId: virtualNetwork.outputs.subnetResourceIds[0] // Use the first subnet (inbound-snet)
-        privateIpAddress: inboundPrivateIp
+        privateIpAddress: hubVnetRanges.privateDnsIp
         privateIpAllocationMethod: 'Static'
       }
     ]
@@ -80,7 +76,7 @@ module dnsForwardingRuleset 'br/public:avm/res/network/dns-forwarding-ruleset:0.
         name: 'wildcard'
         targetDnsServers: [
           {
-            ipAddress: inboundPrivateIp
+            ipAddress: hubVnetRanges.privateDnsIp
             port: 53
           }
         ]
@@ -91,7 +87,7 @@ module dnsForwardingRuleset 'br/public:avm/res/network/dns-forwarding-ruleset:0.
         name: 'azure'
         targetDnsServers: [
           {
-            ipAddress: inboundPrivateIp
+            ipAddress: hubVnetRanges.privateDnsIp
             port: 53
           }
         ]
@@ -102,14 +98,14 @@ module dnsForwardingRuleset 'br/public:avm/res/network/dns-forwarding-ruleset:0.
         name: 'windows'
         targetDnsServers: [
           {
-            ipAddress: inboundPrivateIp
+            ipAddress: hubVnetRanges.privateDnsIp
             port: 53
           }
         ]
       }
     ]
     virtualNetworkLinks: [
-      for vnetId in vnetResourceIdsForLink: {
+      for vnetId in peeringResourceId: {
         virtualNetworkResourceId: vnetId
       }
     ]
@@ -119,3 +115,4 @@ module dnsForwardingRuleset 'br/public:avm/res/network/dns-forwarding-ruleset:0.
 output virtualNetworkId string = virtualNetwork.outputs.resourceId
 output peSubnetId string = virtualNetwork.outputs.subnetResourceIds[2]
 output peSubnetName string = virtualNetwork.outputs.subnetNames[2]
+output privateDnsIp string = hubVnetRanges.privateDnsIp
