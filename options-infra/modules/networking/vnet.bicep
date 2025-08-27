@@ -61,6 +61,13 @@ var extraAgentSubnetObjects = [
   }
 ]
 
+module networkSecurityGroup 'br/public:avm/res/network/network-security-group:0.5.1' = {
+  name: 'networkSecurityGroupDeployment'
+  params: {
+    name: 'agent-nsg'
+  }
+}
+
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   name: vnetName
   location: location
@@ -83,18 +90,27 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
               }
             }
           ]
+          networkSecurityGroup: {
+            id: networkSecurityGroup.outputs.resourceId
+          }
         }
       }
       {
         name: peSubnetName
         properties: {
           addressPrefix: peSubnet
+          networkSecurityGroup: {
+            id: networkSecurityGroup.outputs.resourceId
+          }
         }
       }
       {
         name: laSubnetName
         properties: {
           addressPrefix: laSubnet
+          networkSecurityGroup: {
+            id: networkSecurityGroup.outputs.resourceId
+          }
           delegations: [
             {
               name: 'Microsoft.Web/serverfarms'
