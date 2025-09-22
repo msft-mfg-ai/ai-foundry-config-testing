@@ -98,7 +98,7 @@ resource aiSearch 'Microsoft.Search/searchServices@2024-06-01-preview' = if(!aiS
     }
   }
   sku: {
-    name: 'standard'
+    name: 'basic'
   }
 }
 
