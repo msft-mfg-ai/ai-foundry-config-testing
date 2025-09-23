@@ -16,4 +16,5 @@ output hubVnetRanges types.HubVnetRangesType = {
   outboundSubnet: outboundSubnet
   peSubnet: peSubnet
   privateDnsIp: inboundPrivateIp
+  vnetAddressPrefix: vnetAddress
 }

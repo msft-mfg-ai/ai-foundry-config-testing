@@ -6,9 +6,9 @@ param peeringResourceId string[] = []
 param hubVnetRanges types.HubVnetRangesType
 
 module virtualNetwork 'br/public:avm/res/network/virtual-network:0.7.0' = {
-  name: 'name'
+  name: 'hub-vnet-deployment'
   params: {
-    addressPrefixes: [hubVnetRanges.inboundSubnet]
+    addressPrefixes: [hubVnetRanges.vnetAddressPrefix]
     name: 'hub-vnet'
     location: location
     subnets: [
@@ -28,8 +28,8 @@ module virtualNetwork 'br/public:avm/res/network/virtual-network:0.7.0' = {
       }
     ]
     peerings: [
-      {
-        remoteVirtualNetworkResourceId: vnetResourceIdsForLink[0]
+      for vnetId in peeringResourceId: {
+        remoteVirtualNetworkResourceId: vnetId
         remotePeeringEnabled: true
       }
     ]
@@ -105,7 +105,7 @@ module dnsForwardingRuleset 'br/public:avm/res/network/dns-forwarding-ruleset:0.
       }
     ]
     virtualNetworkLinks: [
-      for vnetId in peeringResourceId: {
+      for vnetId in vnetResourceIdsForLink: {
         virtualNetworkResourceId: vnetId
       }
     ]

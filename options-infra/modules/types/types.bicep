@@ -72,4 +72,5 @@ type HubVnetRangesType = {
   outboundSubnet: string
   peSubnet: string
   privateDnsIp: string
+  vnetAddressPrefix: string
 }

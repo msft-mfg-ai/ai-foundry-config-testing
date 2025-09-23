@@ -1,17 +1,17 @@
 // This bicep files deploys simple foundry standard
-// Foundry is deployed to one VNET, while all the dependencies are in another VNET
-// with Private DNS resolver and VNET peering to enable name resolution
+// ------------------
+// Sample explores scenario where Foundry Agents Service is in one VNET, while all the dependencies
+// are in another VNET, with Private DNS resolver and VNET peering to enable name resolution
 targetScope = 'resourceGroup'
 
 param location string = resourceGroup().location
-
 
 var resourceToken = toLower(uniqueString(resourceGroup().id, location))
 
 module hubCidr './modules/private-dns/private-dns-cidr.bicep' = {
   name: 'hubCidr'
   params: {
-    vnetAddressPrefix: '172.16.0.0/24'
+    vnetAddressPrefix: '44.16.0.0/25'
   }
 }
 
@@ -23,7 +23,7 @@ module vnet './modules/networking/vnet.bicep' = {
     vnetName: 'project-vnet-${resourceToken}'
     location: location
     vnetAddressPrefix: '172.17.0.0/22'
-    customDNS: privateDns.outputs.privateDnsIp
+    customDNS: hubCidr.outputs.hubVnetRanges.privateDnsIp
   }
 }
 
@@ -32,6 +32,8 @@ module privateDns './modules/private-dns/private-dns.bicep' = {
   params: {
     location: location
     hubVnetRanges: hubCidr.outputs.hubVnetRanges
+    peeringResourceId: [vnet.outputs.virtualNetworkId]
+    vnetResourceIdsForLink: [vnet.outputs.virtualNetworkId]
   }
 }
 
@@ -41,8 +43,8 @@ module ai_dependencies './modules/ai/ai-dependencies-with-dns.bicep' = {
     peSubnetName: privateDns.outputs.peSubnetName
     vnetResourceId: privateDns.outputs.virtualNetworkId
     resourceToken: resourceToken
-    aiServicesName: '' // create AI serviced PE later
-    aiAccountNameResourceGroupName: ''
+    aiServicesName: foundry.outputs.name
+    aiAccountNameResourceGroupName: foundry.outputs.resourceGroupName
   }
 }
 
@@ -96,12 +98,13 @@ module project1 './modules/ai/ai-project-with-caphost.bicep' = {
   }
 }
 
-module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.18.0' = {
+module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.20.0' = if (false) {
   name: 'virtualMachineDeployment'
   params: {
     // Required parameters
     adminUsername: 'localAdminUser'
     availabilityZone: -1
+
     encryptionAtHost: false
     imageReference: {
       offer: '0001-com-ubuntu-server-jammy'
@@ -122,6 +125,9 @@ module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.18.0' = {
             name: 'ipconfig01'
             subnetResourceId: vnet.outputs.peSubnetId
             pipConfiguration: {
+              availabilityZones: []
+              skuName: 'Basic'
+              skuTier: 'Regional'
               publicIpNameSuffix: '-pip-01'
             }
           }
