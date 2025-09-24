@@ -22,46 +22,6 @@ module roleAssignments 'modules/aml/role-assignment.bicep' = {
   }
 }
 
-// https://github.com/Azure/bicep-registry-modules/blob/main/avm/ptn/ai-ml/ai-foundry/README.md
-module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.4.0' = {
-  name: 'aiFoundryDeployment'
-  params: {
-    // Required parameters
-    baseName: take('foundry-${resourceToken}',12)
-    // Non-required parameters
-    aiModelDeployments: [
-      {
-        model: {
-          format: 'OpenAI'
-          name: 'gpt-4o'
-          version: '2024-11-20'
-        }
-        name: 'gpt-4o'
-        sku: {
-          capacity: 1
-          name: 'Standard'
-        }
-      }
-    ]
-    aiFoundryConfiguration: {
-      disableLocalAuth: true
-      roleAssignments: [
-        {
-          principalId: identity.outputs.AZURE_RESOURCE_USER_ASSIGNED_IDENTITY_PRINCIPAL_ID
-          principalType: 'ServicePrincipal'
-          roleDefinitionIdOrName: 'Azure AI User'
-        }
-      ]
-      networking: {
-        aiServicesPrivateDnsZoneResourceId: dns.outputs.dnsZonesOutput.aiServicesDnsZoneResourceId
-        cognitiveServicesPrivateDnsZoneResourceId: dns.outputs.dnsZonesOutput.cognitiveServicesDnsZoneResourceId
-        openAiPrivateDnsZoneResourceId: dns.outputs.dnsZonesOutput.openAiDnsZoneResourceId
-      }
-    }
-    
-  }
-}
-
 // https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/machine-learning-services/workspace#readme
 module vnet 'modules/aml/virtual-network.bicep' = {
   name: 'aml-vnet-deployment'
@@ -131,6 +91,49 @@ module acr 'modules/aml/container-registry.bicep' = {
   }
 }
 
+
+module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.4.0' = {
+  name: 'aiFoundryDeployment'
+  params: {
+    // Required parameters
+    baseName: take('foundry-${resourceToken}', 12)
+    // Non-required parameters
+    aiModelDeployments: [
+      {
+        model: {
+          format: 'OpenAI'
+          name: 'gpt-4o'
+          version: '2024-11-20'
+        }
+        name: 'gpt-4o'
+        sku: {
+          capacity: 1
+          name: 'Standard'
+        }
+      }
+    ]
+    // second subnet for private endpoints
+    privateEndpointSubnetResourceId: vnet.outputs.AZURE_VIRTUAL_NETWORK_PRIVATE_ENDPOINTS_SUBNET_ID
+    aiFoundryConfiguration: {
+      disableLocalAuth: true
+      roleAssignments: [
+        {
+          principalId: identity.outputs.AZURE_RESOURCE_USER_ASSIGNED_IDENTITY_PRINCIPAL_ID
+          principalType: 'ServicePrincipal'
+          // roleDefinitionIdOrName: 'Azure AI User'
+          roleDefinitionIdOrName: '/providers/Microsoft.Authorization/roleDefinitions/53ca6127-db72-4b80-b1b0-d745d6d5456d'
+        }
+      ]
+      networking: {
+        aiServicesPrivateDnsZoneResourceId: dns.outputs.dnsZonesOutput.aiServicesDnsZoneResourceId
+        cognitiveServicesPrivateDnsZoneResourceId: dns.outputs.dnsZonesOutput.cognitiveServicesDnsZoneResourceId
+        openAiPrivateDnsZoneResourceId: dns.outputs.dnsZonesOutput.openAiDnsZoneResourceId
+      }
+    }
+  }
+}
+
+
 // https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/machine-learning-services/workspace#readme
 module aml_workspace 'modules/aml/aml.bicep' = {
   name: 'aml-workspace-deployment'
@@ -143,70 +146,11 @@ module aml_workspace 'modules/aml/aml.bicep' = {
     storageAccountId: storage.outputs.AZURE_STORAGE_ACCOUNT_ID
     containerRegistryId: acr.outputs.AZURE_RESOURCE_REGISTRY_ID
     keyVaultId: vault.outputs.AZURE_RESOURCE_KEY_VAULT_ID
-    privateEndpointsSubnetResourceId: vnet.outputs.AZURE_VIRTUAL_NETWORK_AML_SUBNET_ID
+    privateEndpointsSubnetResourceId: vnet.outputs.AZURE_VIRTUAL_NETWORK_PRIVATE_ENDPOINTS_SUBNET_ID
     amlPrivateDnsZoneResourceId: dns.outputs.dnsZonesOutput.amlWorkspaceDnsZoneResourceId
     notebooksPrivateDnsZoneResourceId: dns.outputs.dnsZonesOutput.notebooksDnsZoneResourceId
 
     foundryName: aiFoundry.outputs.aiServicesName
   }
 }
-
-
-// module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.20.0' = if (false) {
-//   name: 'virtualMachineDeployment'
-//   params: {
-//     // Required parameters
-//     adminUsername: 'localAdminUser'
-//     availabilityZone: -1
-
-//     encryptionAtHost: false
-//     imageReference: {
-//       offer: '0001-com-ubuntu-server-jammy'
-//       publisher: 'Canonical'
-//       sku: '22_04-lts-gen2'
-//       version: 'latest'
-//     }
-//     name: 'testing-vm-pka'
-//     managedIdentities: {
-//       systemAssigned: true
-//     }
-//     nicConfigurations: [
-//       {
-//         deleteOption: 'Delete'
-//         nicSuffix: '-nic-01'
-//         ipConfigurations: [
-//           {
-//             name: 'ipconfig01'
-//             subnetResourceId: vnet.outputs.AZURE_VIRTUAL_NETWORK_PRIVATE_ENDPOINTS_SUBNET_ID
-//             pipConfiguration: {
-//               availabilityZones: []
-//               skuName: 'Basic'
-//               skuTier: 'Regional'
-//               publicIpNameSuffix: '-pip-01'
-//             }
-//           }
-//         ]
-//       }
-//     ]
-//     osDisk: {
-//       deleteOption: 'Delete'
-//       caching: 'ReadWrite'
-//       diskSizeGB: 32
-//       managedDisk: {
-//         storageAccountType: 'Standard_LRS'
-//       }
-//     }
-//     osType: 'Linux'
-//     vmSize: 'Standard_D2s_v3'
-//     // Non-required parameters
-//     disablePasswordAuthentication: true
-//     location: location
-//     publicKeys: [
-//       {
-//         keyData: loadTextContent('../../../../.ssh/id_rsa.pub')
-//         path: '/home/localAdminUser/.ssh/authorized_keys'
-//       }
-//     ]
-//   }
-// }
 

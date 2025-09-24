@@ -119,7 +119,7 @@ module workspace 'br/public:avm/res/machine-learning-services/workspace:0.13.0' 
       ? []
       : [
           {
-            name: 'aiServicesConnection'
+            name: 'openai-foundry'
             category: 'AzureOpenAI'
             group: 'AzureAI'
             connectionProperties: {
@@ -133,7 +133,7 @@ module workspace 'br/public:avm/res/machine-learning-services/workspace:0.13.0' 
             }
           }
           {
-            name: 'aiServicesConnection'
+            name: 'cognitive-foundry'
             category: 'AIServices'
             group: 'AzureAI'
             connectionProperties: {
