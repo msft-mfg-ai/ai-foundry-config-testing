@@ -1,13 +1,7 @@
-@description('Name of the Vnet')
-param vnetName string
-@description('Suffix for unique resource names')
-param suffix string
+import * as types from '../types/types.bicep'
 
-@description('Resource Group name for existing Virtual Network (if different from current resource group)')
-param vnetResourceGroupName string = resourceGroup().name
-
-@description('Subscription ID for Virtual Network')
-param vnetSubscriptionId string = subscription().subscriptionId
+@description('Array of VNet resource IDs to link the Private DNS Zones to for name resolution')
+param vnetResourceIds string[] = []
 
 /* -------------------------------------------- Private DNS Zones -------------------------------------------- */
 
@@ -25,19 +19,12 @@ var aiSearchDnsZoneName = 'privatelink.search.windows.net'
 var storageDnsZoneName = 'privatelink.blob.${environment().suffixes.storage}'
 var cosmosDBDnsZoneName = 'privatelink.documents.azure.com'
 
-// Reference existing network resources
-resource vnet 'Microsoft.Network/virtualNetworks@2024-05-01' existing = {
-  name: vnetName
-  scope: resourceGroup(vnetSubscriptionId, vnetResourceGroupName)
-}
-
 
 // ---- DNS Zone Resources and References ----
 resource aiServicesPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: aiServicesDnsZoneName
   location: 'global'
 }
-
 
 resource openAiPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: openAiDnsZoneName
@@ -49,17 +36,15 @@ resource cognitiveServicesPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020
   location: 'global'
 }
 
-
-resource aiSearchPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' =  {
+resource aiSearchPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: aiSearchDnsZoneName
   location: 'global'
 }
 
-resource storagePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' =  {
+resource storagePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: storageDnsZoneName
   location: 'global'
 }
-
 
 resource cosmosDBPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: cosmosDBDnsZoneName
@@ -67,60 +52,77 @@ resource cosmosDBPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' =
 }
 
 // ---- DNS VNet Links ----
-resource aiServicesLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' =  {
-  parent: aiServicesPrivateDnsZone
-  location: 'global'
-  name: 'aiServices-${suffix}-link'
-  properties: {
-    virtualNetwork: { id: vnet.id }
-    registrationEnabled: false
+resource aiServicesLinks 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = [
+  for vnetId in vnetResourceIds: {
+    parent: aiServicesPrivateDnsZone
+    location: 'global'
+    name: 'aiServices-${uniqueString(vnetId)}-link'
+    properties: {
+      virtualNetwork: { id: vnetId }
+      registrationEnabled: false
+    }
   }
-}
-resource openAiLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' =  {
+]
+
+resource openAiLinks 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = [
+  for vnetId in vnetResourceIds: {
   parent: openAiPrivateDnsZone
   location: 'global'
-  name: 'aiServicesOpenAI-${suffix}-link'
+  name: 'aiServicesOpenAI-${uniqueString(vnetId)}-link'
   properties: {
-    virtualNetwork: { id: vnet.id }
+    virtualNetwork: { id: vnetId }
     registrationEnabled: false
   }
 }
-resource cognitiveServicesLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' =  {
-  parent: cognitiveServicesPrivateDnsZone
-  location: 'global'
-  name: 'aiServicesCognitiveServices-${suffix}-link'
-  properties: {
-    virtualNetwork: { id: vnet.id }
+]
+  
+resource cognitiveServicesLinks 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = [
+  for vnetId in vnetResourceIds: {
+    parent: cognitiveServicesPrivateDnsZone
+    location: 'global'
+    name: 'aiServicesCognitiveServices-${uniqueString(vnetId)}-link'
+    properties: {
+    virtualNetwork: { id: vnetId }
     registrationEnabled: false
   }
 }
-resource aiSearchLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' =  {
+]
+
+resource aiSearchLinks 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = [
+  for vnetId in vnetResourceIds: {
   parent: aiSearchPrivateDnsZone
   location: 'global'
-  name: 'aiSearch-${suffix}-link'
+  name: 'aiSearch-${uniqueString(vnetId)}-link'
   properties: {
-    virtualNetwork: { id: vnet.id }
+    virtualNetwork: { id: vnetId }
     registrationEnabled: false
   }
 }
-resource storageLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' =  {
+]
+
+resource storageLinks 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = [
+  for vnetId in vnetResourceIds: {
   parent: storagePrivateDnsZone
   location: 'global'
-  name: 'storage-${suffix}-link'
+  name: 'storage-${uniqueString(vnetId)}-link'
   properties: {
-    virtualNetwork: { id: vnet.id }
+    virtualNetwork: { id: vnetId }
     registrationEnabled: false
   }
 }
-resource cosmosDBLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' =  {
+]
+
+resource cosmosDBLinks 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = [
+  for vnetId in vnetResourceIds: {
   parent: cosmosDBPrivateDnsZone
   location: 'global'
-  name: 'cosmosDB-${suffix}-link'
+  name: 'cosmosDB-${uniqueString(vnetId)}-link'
   properties: {
-    virtualNetwork: { id: vnet.id }
+    virtualNetwork: { id: vnetId }
     registrationEnabled: false
   }
 }
+]
 
 output aiServicesPrivateDnsZoneId string = aiServicesPrivateDnsZone.id
 output openAiPrivateDnsZoneId string = openAiPrivateDnsZone.id
@@ -128,3 +130,36 @@ output cognitiveServicesPrivateDnsZoneId string = cognitiveServicesPrivateDnsZon
 output aiSearchPrivateDnsZoneId string = aiSearchPrivateDnsZone.id
 output storagePrivateDnsZoneId string = storagePrivateDnsZone.id
 output cosmosDBPrivateDnsZoneId string = cosmosDBPrivateDnsZone.id
+
+output DNSZones types.DnsZonesType = {
+  'privatelink.services.ai.azure.com': {
+    name: aiServicesDnsZoneName
+    resourceGroupName: empty(aiServicesDnsZone) ? resourceGroup().name : aiServicesDnsZone!.resourceGroupName
+    subscriptionId: empty(aiServicesDnsZone) ? subscription().subscriptionId : aiServicesDnsZone!.subscriptionId
+  }
+  'privatelink.openai.azure.com': {
+    name: openAiDnsZoneName
+    resourceGroupName: empty(openAiDnsZone) ? resourceGroup().name : openAiDnsZone!.resourceGroupName
+    subscriptionId: empty(openAiDnsZone) ? subscription().subscriptionId : openAiDnsZone!.subscriptionId
+  }
+  'privatelink.cognitiveservices.azure.com': {
+    name: cognitiveServicesDnsZoneName
+    resourceGroupName: empty(cognitiveServicesDnsZone) ? resourceGroup().name : cognitiveServicesDnsZone!.resourceGroupName
+    subscriptionId: empty(cognitiveServicesDnsZone) ? subscription().subscriptionId : cognitiveServicesDnsZone!.subscriptionId
+  }
+  'privatelink.search.windows.net': {
+    name: aiSearchDnsZoneName
+    resourceGroupName: empty(aiSearchDnsZone) ? resourceGroup().name : aiSearchDnsZone!.resourceGroupName
+    subscriptionId: empty(aiSearchDnsZone) ? subscription().subscriptionId : aiSearchDnsZone!.subscriptionId
+  }
+  'privatelink.blob.${environment().suffixes.storage}': {
+    name: storageDnsZoneName
+    resourceGroupName: empty(storageDnsZone) ? resourceGroup().name : storageDnsZone!.resourceGroupName
+    subscriptionId: empty(storageDnsZone) ? subscription().subscriptionId : storageDnsZone!.subscriptionId
+  }
+  'privatelink.documents.azure.com': {
+    name: cosmosDBDnsZoneName
+    resourceGroupName: empty(cosmosDBDnsZone) ? resourceGroup().name : cosmosDBDnsZone!.resourceGroupName
+    subscriptionId: empty(cosmosDBDnsZone) ? subscription().subscriptionId : cosmosDBDnsZone!.subscriptionId
+  }
+}
