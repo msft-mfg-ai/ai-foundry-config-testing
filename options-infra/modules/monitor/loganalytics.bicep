@@ -119,5 +119,5 @@ output logAnalyticsWorkspaceName string = useExistingLogAnalytics
   ? existingLogAnalyticsResource.name
   : newLogAnalyticsResource.name
 output appInsightsConnectionString string = useExistingAppInsights
-  ? existingApplicationInsightsResource.properties.ConnectionString
-  : newApplicationInsightsResource.properties.ConnectionString
+  ? existingApplicationInsightsResource.?properties.ConnectionString ?? ''
+  : newApplicationInsightsResource.?properties.ConnectionString ?? ''

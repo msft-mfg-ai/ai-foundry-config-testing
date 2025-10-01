@@ -23,22 +23,16 @@ param kind string = 'Default' //'Hub'
 var description string = '${kind == 'Hub' ? 'Ai Foundry Hub' : 'Machine Learning Workspace'} ${name}'
 var friendlyName string = description
 
-// resource aiServicesConnection 'connections@2024-04-01-preview' = {
-//   name: '${name}-connection'
-//   properties: {
-//     category: 'AIServices'
-//     target: aiServicesTarget
-//     authType: 'AAD'
-//     isSharedToAll: true
-//     metadata: {
-//       ApiType: 'Azure'
-//       ResourceId: aiServicesId
-//     }
-//   }
-// }
+// split storage account id to get name and resource group
+var storageParts = split(storageAccountId, '/')
+var storageAccountName = storageParts[8]
+
+resource foundry 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = if (!empty(foundryName)) {
+  name: foundryName!
+}
 
 module workspace 'br/public:avm/res/machine-learning-services/workspace:0.13.0' = {
-  name: 'ml-workspace-Deployment'
+  name: 'aml-${name}-workspace-Deployment'
   params: {
     // Required parameters
     name: name
@@ -119,9 +113,37 @@ module workspace 'br/public:avm/res/machine-learning-services/workspace:0.13.0' 
       ? []
       : [
           {
+            name: 'aoai-connection'
+            category: 'AzureOpenAI'
+            isSharedToAll: true
+            metadata: {
+              ApiVersion: '2024-02-01'
+              ApiType: 'azure'
+              ResourceId: foundry.id
+            }
+            target: foundry!.properties.endpoints['OpenAI Language Model Instance API']
+            connectionProperties: {
+              authType: 'AAD'
+            }
+          }
+          {
+            name: 'aoai-contentsafety'
+            category: 'AzureOpenAI'
+            isSharedToAll: true
+            target: foundry!.properties.endpoints['Content Safety']
+            metadata: {
+              ApiVersion: '2023-07-01-preview'
+              ApiType: 'azure'
+              ResourceId: foundry.id
+            }
+            connectionProperties: {
+              authType: 'AAD'
+            }
+          }
+          {
             name: 'openai-foundry'
             category: 'AzureOpenAI'
-            group: 'AzureAI'
+            // group: 'AzureAI'
             connectionProperties: {
               authType: 'AAD'
             }
@@ -130,12 +152,14 @@ module workspace 'br/public:avm/res/machine-learning-services/workspace:0.13.0' 
             metadata: {
               ApiType: 'Azure'
               ResourceId: resourceId('Microsoft.CognitiveServices/accounts', foundryName!)
+              ApiVersion: '2023-07-01-preview'
+              DeploymentApiVersion: '2023-10-01-preview'
             }
           }
           {
             name: 'cognitive-foundry'
             category: 'AIServices'
-            group: 'AzureAI'
+            // group: 'AzureAI'
             connectionProperties: {
               authType: 'AAD'
             }
@@ -144,9 +168,29 @@ module workspace 'br/public:avm/res/machine-learning-services/workspace:0.13.0' 
             metadata: {
               ApiType: 'Azure'
               ResourceId: resourceId('Microsoft.CognitiveServices/accounts', foundryName!)
+              ApiVersion: '2023-07-01-preview'
+              DeploymentApiVersion: '2023-10-01-preview'
             }
           }
         ]
+    datastores: [
+      {
+        name: 'workspaceworkingdirectory'
+        properties: {
+          accountName: storageAccountName
+          fileShareName: 'workspaceworkingdirectory'
+          credentials: {
+            credentialsType: 'None'
+          }
+          datastoreType: 'AzureFile'
+          endpoint: environment().suffixes.storage
+          protocol: 'https'
+          // resourceGroup: '<resourceGroup>'
+          serviceDataAccessAuthIdentity: 'None'
+          // subscriptionId: '<subscriptionId>'
+        }
+      }
+    ]
     // sharedPrivateLinkResources: [
     //   {
     //     name: '<name>'

@@ -29,6 +29,25 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.26.2' = {
 
     allowBlobPublicAccess: false
     tags: tags
+    fileServices: {
+      shares: [
+        {
+          name: 'workspaceworkingdirectory'
+          shareQuota: 1
+          diagnosticSettings: [
+            {
+              metricCategories: [
+                {
+                  category: 'AllMetrics'
+                }
+              ]
+              name: 'all'
+              workspaceResourceId: logAnalyticsWorkspaceId
+            }
+          ]
+        }
+      ]
+    }
     blobServices: {
       automaticSnapshotPolicyEnabled: true
       containerDeleteRetentionPolicyDays: 10
