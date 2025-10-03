@@ -27,6 +27,7 @@ Security Benefits:
 @description('Name of the AI Foundry account')
 param aiAccountName string?
 param aiAccountNameResourceGroup string = resourceGroup().name
+param aiAccountSubscriptionId string = subscription().subscriptionId
 @description('Name of the AI Search service')
 param aiSearchName string
 @description('Name of the storage account')
@@ -67,29 +68,16 @@ param cosmosDBResourceGroupName string = resourceGroup().name
 @description('Map of DNS zone FQDNs to resource group names. If provided, reference existing DNS zones in this resource group instead of creating them.')
 param existingDnsZones types.DnsZonesType = types.DefaultDNSZones
 
-var currentRg = {
-  name: ''
-  resourceGroupName: resourceGroup().name
-  subscriptionId: subscription().subscriptionId
-}
-
 module ai_private_endpoint 'ai-pe-dns.bicep' = if (!empty(aiAccountName)) {
   name: '${aiAccountName}-private-endpoint'
   params: {
     aiAccountName: aiAccountName!
     aiAccountNameResourceGroup: aiAccountNameResourceGroup
+    aiAccountSubscriptionId: aiAccountSubscriptionId
     peSubnetId: peSubnet.id
     resourceToken: suffix
     vnetId: vnet.id
-    existingDnsZones: {
-      'privatelink.services.ai.azure.com': currentRg
-      'privatelink.openai.azure.com': currentRg
-      'privatelink.cognitiveservices.azure.com': currentRg
-      'privatelink.search.windows.net': null
-      #disable-next-line no-hardcoded-env-urls
-      'privatelink.blob.core.windows.net': null
-      'privatelink.documents.azure.com': null
-    }
+    existingDnsZones: zones
   }
 }
 
@@ -385,7 +373,7 @@ resource cosmosDBDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGrou
 output aiServicesDnsZoneId string = aiServicesDnsZoneId
 output openAiDnsZoneId string = openAiDnsZoneId
 output cognitiveServicesDnsZoneId string = cognitiveServicesDnsZoneId
-output DNSZones types.DnsZonesType = {
+var zones types.DnsZonesType = {
   'privatelink.services.ai.azure.com': {
     name: aiServicesDnsZoneName
     resourceGroupName: empty(aiServicesDnsZone) ? resourceGroup().name : aiServicesDnsZone!.resourceGroupName
@@ -417,3 +405,5 @@ output DNSZones types.DnsZonesType = {
     subscriptionId: empty(cosmosDBDnsZone) ? subscription().subscriptionId : cosmosDBDnsZone!.subscriptionId
   }
 }
+
+output DNSZones types.DnsZonesType = zones

@@ -3,6 +3,7 @@ targetScope = 'resourceGroup'
 
 param location string = resourceGroup().location
 
+param user_principal_id string = ''
 
 var resourceToken = toLower(uniqueString(resourceGroup().id, location))
 
@@ -14,22 +15,18 @@ module vnet './modules/networking/vnet.bicep' = {
     vnetName: 'project-vnet-${resourceToken}'
     location: location
     vnetAddressPrefix: '172.17.0.0/22'
-    customDNS: privateDns.outputs.privateDnsIp
   }
 }
 
-
-module ai_dependencies './modules/ai/ai-dependencies-with-dns.bicep' = {
-  name: 'ai-dependencies-with-dns'
+module dns_zones './modules/networking/dns-zones.bicep' = {
+  name: 'dns-zones-deployment'
   params: {
-    peSubnetName: vnet.outputs.peSubnetName
-    vnetResourceId: vnet.outputs.virtualNetworkId
-    resourceToken: resourceToken
-    aiServicesName: '' // create AI serviced PE later
-    aiAccountNameResourceGroupName: ''
-    location: 'uksouth'
+    vnetResourceIds: [
+      vnet.outputs.virtualNetworkId
+    ]
   }
 }
+
 
 // --------------------------------------------------------------------------------------------------------------
 // -- Log Analytics Workspace and App Insights ------------------------------------------------------------------
@@ -54,9 +51,9 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.3.0' = {
       createCapabilityHosts: true
       location: location
       networking: {
-        aiServicesPrivateDnsZoneId: '<aiServicesPrivateDnsZoneResourceId>'
-        cognitiveServicesPrivateDnsZoneId: '<cognitiveServicesPrivateDnsZoneResourceId>'
-        openAiPrivateDnsZoneId: '<openAiPrivateDnsZoneResourceId>'
+        aiServicesPrivateDnsZoneResourceId: dns_zones.outputs.aiServicesPrivateDnsZoneId
+        cognitiveServicesPrivateDnsZoneResourceId: dns_zones.outputs.cognitiveServicesPrivateDnsZoneId
+        openAiPrivateDnsZoneResourceId: dns_zones.outputs.openAiPrivateDnsZoneId
       }
       project: {
         name: 'ai-project-1'
@@ -87,7 +84,7 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.3.0' = {
     ]
     aiSearchConfiguration: {
       name: '<name>'
-      privateDnsZoneId: '<privateDnsZoneResourceId>'
+      privateDnsZoneResourceId: '<privateDnsZoneResourceId>'
       roleAssignments: [
         {
           principalId: '<principalId>'
@@ -98,7 +95,7 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.3.0' = {
     }
     cosmosDbConfiguration: {
       name: '<name>'
-      privateDnsZoneId: '<privateDnsZoneResourceId>'
+      privateDnsZoneResourceId: '<privateDnsZoneResourceId>'
       roleAssignments: [
         {
           principalId: '<principalId>'
@@ -110,7 +107,7 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.3.0' = {
     includeAssociatedResources: true
     keyVaultConfiguration: {
       name: '<name>'
-      privateDnsZoneId: '<privateDnsZoneResourceId>'
+      privateDnsZoneResourceId: '<privateDnsZoneResourceId>'
       roleAssignments: [
         {
           principalId: '<principalId>'
@@ -124,9 +121,9 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.3.0' = {
       kind: 'CanNotDelete'
       name: '<name>'
     }
-    privateEndpointSubnetId: '<privateEndpointSubnetResourceId>'
+    privateEndpointSubnetResourceId: '<privateEndpointSubnetResourceId>'
     storageAccountConfiguration: {
-      blobPrivateDnsZoneId: '<blobPrivateDnsZoneResourceId>'
+      blobPrivateDnsZoneResourceId: '<blobPrivateDnsZoneResourceId>'
       name: '<name>'
       roleAssignments: [
         {

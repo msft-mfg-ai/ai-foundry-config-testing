@@ -1,5 +1,6 @@
 param existing_CogServices_Name string = ''
-param existing_CogServices_RG_Name string = ''
+param existing_CogServices_RG_Name string = resourceGroup().name
+param existing_CogServices_SubId string = subscription().subscriptionId
 param name string = ''
 param location string = resourceGroup().location
 param tags object = {}
@@ -20,7 +21,6 @@ param managedIdentityId string = ''
 // --------------------------------------------------------------------------------------------------------------
 // Variables
 // --------------------------------------------------------------------------------------------------------------
-var resourceGroupName = resourceGroup().name
 var useExistingService = !empty(existing_CogServices_Name)
 var cognitiveServicesKeySecretName = 'cognitive-services-key'
 param gpt41Deployment aiModelTDeploymentType?
@@ -57,7 +57,7 @@ resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-p
 
 // --------------------------------------------------------------------------------------------------------------
 resource existingAccount 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = if (useExistingService) {
-  scope: resourceGroup(existing_CogServices_RG_Name)
+  scope: resourceGroup(existing_CogServices_RG_Name, existing_CogServices_SubId)
   name: existing_CogServices_Name
 }
 
@@ -151,7 +151,8 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = if (!
 output id string = useExistingService ? existingAccount.id : account.id
 output name string = useExistingService ? existingAccount.name : account.name
 output endpoint string = useExistingService ? existingAccount!.properties.endpoint : account!.properties.endpoint
-output resourceGroupName string = useExistingService ? existing_CogServices_RG_Name : resourceGroupName
+output resourceGroupName string = useExistingService ? existing_CogServices_RG_Name : resourceGroup().name
+output subscriptionId string = useExistingService ? existing_CogServices_SubId : subscription().subscriptionId
 output cognitiveServicesKeySecretName string = cognitiveServicesKeySecretName
 
 

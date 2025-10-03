@@ -134,32 +134,32 @@ output cosmosDBPrivateDnsZoneId string = cosmosDBPrivateDnsZone.id
 output DNSZones types.DnsZonesType = {
   'privatelink.services.ai.azure.com': {
     name: aiServicesDnsZoneName
-    resourceGroupName: empty(aiServicesDnsZone) ? resourceGroup().name : aiServicesDnsZone!.resourceGroupName
-    subscriptionId: empty(aiServicesDnsZone) ? subscription().subscriptionId : aiServicesDnsZone!.subscriptionId
+    resourceGroupName: resourceGroup().name
+    subscriptionId: subscription().subscriptionId
   }
   'privatelink.openai.azure.com': {
     name: openAiDnsZoneName
-    resourceGroupName: empty(openAiDnsZone) ? resourceGroup().name : openAiDnsZone!.resourceGroupName
-    subscriptionId: empty(openAiDnsZone) ? subscription().subscriptionId : openAiDnsZone!.subscriptionId
+    resourceGroupName: resourceGroup().name
+    subscriptionId: subscription().subscriptionId
   }
   'privatelink.cognitiveservices.azure.com': {
     name: cognitiveServicesDnsZoneName
-    resourceGroupName: empty(cognitiveServicesDnsZone) ? resourceGroup().name : cognitiveServicesDnsZone!.resourceGroupName
-    subscriptionId: empty(cognitiveServicesDnsZone) ? subscription().subscriptionId : cognitiveServicesDnsZone!.subscriptionId
+    resourceGroupName: resourceGroup().name
+    subscriptionId: subscription().subscriptionId
   }
   'privatelink.search.windows.net': {
     name: aiSearchDnsZoneName
-    resourceGroupName: empty(aiSearchDnsZone) ? resourceGroup().name : aiSearchDnsZone!.resourceGroupName
-    subscriptionId: empty(aiSearchDnsZone) ? subscription().subscriptionId : aiSearchDnsZone!.subscriptionId
+    resourceGroupName: resourceGroup().name
+    subscriptionId: subscription().subscriptionId
   }
   'privatelink.blob.${environment().suffixes.storage}': {
     name: storageDnsZoneName
-    resourceGroupName: empty(storageDnsZone) ? resourceGroup().name : storageDnsZone!.resourceGroupName
-    subscriptionId: empty(storageDnsZone) ? subscription().subscriptionId : storageDnsZone!.subscriptionId
+    resourceGroupName: resourceGroup().name
+    subscriptionId: subscription().subscriptionId
   }
   'privatelink.documents.azure.com': {
     name: cosmosDBDnsZoneName
-    resourceGroupName: empty(cosmosDBDnsZone) ? resourceGroup().name : cosmosDBDnsZone!.resourceGroupName
-    subscriptionId: empty(cosmosDBDnsZone) ? subscription().subscriptionId : cosmosDBDnsZone!.subscriptionId
+    resourceGroupName: resourceGroup().name
+    subscriptionId: subscription().subscriptionId
   }
 }
