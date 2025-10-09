@@ -8,7 +8,7 @@ param location string = resourceGroup().location
 var resourceToken = toLower(uniqueString(resourceGroup().id, location))
 
 // vnet doesn't have to be in the same RG as the AI Services
-// each agent needs it's own delegated subnet, which means we need as many subnets as agents
+// each foundry needs it's own delegated subnet, projects inside of one Foundry share the subnet for the Agents Service
 module vnet './modules/networking/vnet.bicep' = {
   name: 'vnet'
   params: {
@@ -27,7 +27,7 @@ module ai_dependencies './modules/ai/ai-dependencies-with-dns.bicep' = {
     resourceToken: resourceToken
     aiServicesName: '' // create AI serviced PE later
     aiAccountNameResourceGroupName: ''
-    location: 'uksouth'
+    location: 'eastus2'
   }
 }
 

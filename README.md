@@ -195,7 +195,7 @@ Bicep files in [lading-zone.bicep](./options-infra/landing-zone.bicep) provide v
    az deployment group create `
      --resource-group "rg-ai-foundry-config" `
      --template-file "main-option-1.bicep" `
-     --parameters "main.-option-1.bicepparam" `
+     --parameters "main-option-1.bicepparam" `
      --verbose
    ```
 
@@ -204,7 +204,7 @@ Bicep files in [lading-zone.bicep](./options-infra/landing-zone.bicep) provide v
    az deployment group create `
      --resource-group "rg-ai-foundry-config" `
      --template-file "main-option-2.bicep" `
-     --parameters "main.-option-2.bicepparam" `
+     --parameters "main-option-2.bicepparam" `
      --verbose
    ```
 
@@ -213,7 +213,7 @@ Bicep files in [lading-zone.bicep](./options-infra/landing-zone.bicep) provide v
    az deployment sub create `
      --location westus `
      --template-file "main-option-3.bicep" `
-     --parameters "main.-option-3.bicepparam" `
+     --parameters "main-option-3.bicepparam" `
      --verbose
    ```
 
@@ -222,13 +222,13 @@ Bicep files in [lading-zone.bicep](./options-infra/landing-zone.bicep) provide v
    az deployment group create `
      --resource-group "rg-ai-foundry-config" `
      --template-file "main-option-4.bicep" `
-     --parameters "main.-option-4.bicepparam" `
+     --parameters "main-option-4.bicepparam" `
      --verbose
    ```
 
 
 **Configuration Notes:**
-Create your own configuration file: `main.-option-3.local.bicepparam` and use in the deployment.
+Create your own configuration file: `main-option-3.local.bicepparam` and use in the deployment.
 
 * **Location**: Set to `eastus2` - you can change this to your preferred Azure region that supports AI services
 * **Existing AOAI Resource**: 

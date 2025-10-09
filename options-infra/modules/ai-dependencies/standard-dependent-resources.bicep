@@ -1,4 +1,5 @@
 // Creates Azure dependent resources for Azure AI Agent Service standard agent setup
+import * as types from '../types/types.bicep'
 
 @description('Azure region of the deployment')
 param location string
@@ -133,18 +134,55 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = if(!azureStora
   }
 }
 
-output aiSearchName string = aiSearchExists ? existingSearchService.name : aiSearch.name
-output aiSearchID string = aiSearchExists ? existingSearchService.id : aiSearch.id
-output aiSearchServiceResourceGroupName string = aiSearchExists ? acsParts[4] : resourceGroup().name
-output aiSearchServiceSubscriptionId string = aiSearchExists ? acsParts[2] : subscription().subscriptionId
+var aiSearchNameFinal string = aiSearchExists ? existingSearchService.name : aiSearch.name
+var aiSearchID string = aiSearchExists ? existingSearchService.id : aiSearch.id
+var aiSearchServiceResourceGroupName string = aiSearchExists ? acsParts[4] : resourceGroup().name
+var aiSearchServiceSubscriptionId string = aiSearchExists ? acsParts[2] : subscription().subscriptionId
 
-output azureStorageName string = azureStorageExists ? existingAzureStorageAccount.name :  storage.name
-output azureStorageId string =  azureStorageExists ? existingAzureStorageAccount.id :  storage.id
-output azureStorageResourceGroupName string = azureStorageExists ? azureStorageParts[4] : resourceGroup().name
-output azureStorageSubscriptionId string = azureStorageExists ? azureStorageParts[2] : subscription().subscriptionId
+var azureStorageNameFinal string = azureStorageExists ? existingAzureStorageAccount.name :  storage.name
+var azureStorageId string =  azureStorageExists ? existingAzureStorageAccount.id :  storage.id
+var azureStorageResourceGroupName string = azureStorageExists ? azureStorageParts[4] : resourceGroup().name
+var azureStorageSubscriptionId string = azureStorageExists ? azureStorageParts[2] : subscription().subscriptionId
 
-output cosmosDBName string = cosmosDBExists ? existingCosmosDB.name : cosmosDB.name
-output cosmosDBId string = cosmosDBExists ? existingCosmosDB.id : cosmosDB.id
-output cosmosDBResourceGroupName string = cosmosDBExists ? cosmosParts[4] : resourceGroup().name
-output cosmosDBSubscriptionId string = cosmosDBExists ? cosmosParts[2] : subscription().subscriptionId
+var cosmosDBNameFinal string = cosmosDBExists ? existingCosmosDB.name : cosmosDB.name
+var cosmosDBId string = cosmosDBExists ? existingCosmosDB.id : cosmosDB.id
+var cosmosDBResourceGroupName string = cosmosDBExists ? cosmosParts[4] : resourceGroup().name
+var cosmosDBSubscriptionId string = cosmosDBExists ? cosmosParts[2] : subscription().subscriptionId
+
+
+output aiSearchName string = aiSearchNameFinal
+output aiSearchID string = aiSearchID
+output aiSearchServiceResourceGroupName string = aiSearchServiceResourceGroupName
+output aiSearchServiceSubscriptionId string = aiSearchServiceSubscriptionId
+
+output azureStorageName string = azureStorageNameFinal
+output azureStorageId string = azureStorageId
+output azureStorageResourceGroupName string =azureStorageResourceGroupName
+output azureStorageSubscriptionId string = azureStorageSubscriptionId
+
+output cosmosDBName string = cosmosDBNameFinal
+output cosmosDBId string = cosmosDBId
+output cosmosDBResourceGroupName string = cosmosDBResourceGroupName
+output cosmosDBSubscriptionId string = cosmosDBSubscriptionId
 // output keyvaultId string = keyVault.id
+
+output aiDependencies types.aiDependenciesType = {
+  aiSearch: {
+    name: aiSearchNameFinal
+    resourceId: aiSearchID
+    resourceGroupName: aiSearchServiceResourceGroupName
+    subscriptionId: aiSearchServiceSubscriptionId
+  }
+  azureStorage: {
+    name: azureStorageNameFinal
+    resourceId: azureStorageId
+    resourceGroupName: azureStorageResourceGroupName
+    subscriptionId: azureStorageSubscriptionId
+  }
+  cosmosDB: {
+    name: cosmosDBNameFinal
+    resourceId: cosmosDBId
+    resourceGroupName: cosmosDBResourceGroupName
+    subscriptionId: cosmosDBSubscriptionId
+  }
+}

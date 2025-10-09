@@ -3,6 +3,7 @@ import * as types from '../types/types.bicep'
 @description('Name of the AI Foundry account')
 param aiAccountName string
 param aiAccountNameResourceGroup string = resourceGroup().name
+param aiAccountSubscriptionId string = subscription().subscriptionId
 
 @description('The resource ID of the subnet where the private endpoint will be created')
 param peSubnetId string
@@ -27,7 +28,7 @@ var cognitiveServicesDnsZone = existingDnsZones[?cognitiveServicesDnsZoneName]
 // ---- Resource references ----
 resource aiAccount 'Microsoft.CognitiveServices/accounts@2023-05-01' existing =  {
   name: aiAccountName
-  scope: resourceGroup(aiAccountNameResourceGroup)
+  scope: resourceGroup(aiAccountSubscriptionId, aiAccountNameResourceGroup)
 }
 
 // ---- DNS Zone Resources and References ----
