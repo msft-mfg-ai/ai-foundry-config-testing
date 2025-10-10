@@ -1,4 +1,4 @@
-// TODO - deployment using verified modules
+// Deployment using official AVM module for AI Foundry https://github.com/Azure/bicep-avm-ptn-aiml-landing-zone
 targetScope = 'resourceGroup'
 
 param location string = resourceGroup().location
@@ -6,6 +6,7 @@ param location string = resourceGroup().location
 param user_principal_id string = ''
 
 var resourceToken = toLower(uniqueString(resourceGroup().id, location))
+
 
 // vnet doesn't have to be in the same RG as the AI Services
 // each foundry needs it's own delegated subnet, projects inside of one Foundry share the subnet for the Agents Service
@@ -27,7 +28,6 @@ module dns_zones './modules/networking/dns-zones.bicep' = {
   }
 }
 
-
 // --------------------------------------------------------------------------------------------------------------
 // -- Log Analytics Workspace and App Insights ------------------------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------
@@ -40,7 +40,9 @@ module logAnalytics './modules/monitor/loganalytics.bicep' = {
   }
 }
 
-module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.3.0' = {
+// https://github.com/Azure/bicep-avm-ptn-aiml-landing-zone
+// https://github.com/Azure/bicep-registry-modules/tree/main/avm/ptn/ai-ml/ai-foundry
+module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.4.0' = {
   name: 'aiFoundryDeployment'
   params: {
     // Required parameters
@@ -51,6 +53,7 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.3.0' = {
       createCapabilityHosts: true
       location: location
       networking: {
+        agentServiceSubnetResourceId: vnet.outputs.agentSubnetId
         aiServicesPrivateDnsZoneResourceId: dns_zones.outputs.aiServicesPrivateDnsZoneId
         cognitiveServicesPrivateDnsZoneResourceId: dns_zones.outputs.cognitiveServicesPrivateDnsZoneId
         openAiPrivateDnsZoneResourceId: dns_zones.outputs.openAiPrivateDnsZoneId
@@ -60,13 +63,15 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.3.0' = {
         displayName: 'AI Project 1'
         desc: 'This is a description for AI Project 1'
       }
-      roleAssignments: [
-        {
-          principalId: '<principalId>'
-          principalType: 'ServicePrincipal'
-          roleDefinitionIdOrName: 'Cognitive Services OpenAI User'
-        }
-      ]
+      roleAssignments: empty(user_principal_id)
+        ? []
+        : [
+            {
+              principalId: user_principal_id
+              principalType: 'User'
+              roleDefinitionIdOrName: 'Azure AI User'
+            }
+          ]
     }
     aiModelDeployments: [
       {
@@ -83,90 +88,66 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.3.0' = {
       }
     ]
     aiSearchConfiguration: {
-      name: '<name>'
-      privateDnsZoneResourceId: '<privateDnsZoneResourceId>'
-      roleAssignments: [
-        {
-          principalId: '<principalId>'
-          principalType: 'ServicePrincipal'
-          roleDefinitionIdOrName: 'Search Index Data Contributor'
-        }
-      ]
+      // name: '<name>'
+      privateDnsZoneResourceId: dns_zones.outputs.aiSearchPrivateDnsZoneId
+      // roleAssignments: [
+      //   {
+      //     principalId: '<principalId>'
+      //     principalType: 'ServicePrincipal'
+      //     roleDefinitionIdOrName: 'Search Index Data Contributor'
+      //   }
+      // ]
     }
     cosmosDbConfiguration: {
-      name: '<name>'
-      privateDnsZoneResourceId: '<privateDnsZoneResourceId>'
-      roleAssignments: [
-        {
-          principalId: '<principalId>'
-          principalType: 'ServicePrincipal'
-          roleDefinitionIdOrName: 'Cosmos DB Account Reader Role'
-        }
-      ]
+      // name: '<name>'
+      privateDnsZoneResourceId: dns_zones.outputs.cosmosDBPrivateDnsZoneId
+      // roleAssignments: [
+      //   {
+      //     principalId: '<principalId>'
+      //     principalType: 'ServicePrincipal'
+      //     roleDefinitionIdOrName: 'Cosmos DB Account Reader Role'
+      //   }
+      // ]
     }
     includeAssociatedResources: true
     keyVaultConfiguration: {
-      name: '<name>'
-      privateDnsZoneResourceId: '<privateDnsZoneResourceId>'
-      roleAssignments: [
-        {
-          principalId: '<principalId>'
-          principalType: 'ServicePrincipal'
-          roleDefinitionIdOrName: 'Key Vault Secrets User'
-        }
-      ]
+      // name: '<name>'
+      privateDnsZoneResourceId: dns_zones.outputs.keyVaultPrivateDnsZoneId
+      // roleAssignments: [
+      //   {
+      //     principalId: '<principalId>'
+      //     principalType: 'ServicePrincipal'
+      //     roleDefinitionIdOrName: 'Key Vault Secrets User'
+      //   }
+      // ]
     }
-    location: '<location>'
+    location: location
     lock: {
       kind: 'CanNotDelete'
-      name: '<name>'
+      name: 'Please do not delete'
     }
-    privateEndpointSubnetResourceId: '<privateEndpointSubnetResourceId>'
+    privateEndpointSubnetResourceId: vnet.outputs.peSubnetId
     storageAccountConfiguration: {
-      blobPrivateDnsZoneResourceId: '<blobPrivateDnsZoneResourceId>'
-      name: '<name>'
-      roleAssignments: [
-        {
-          principalId: '<principalId>'
-          principalType: 'ServicePrincipal'
-          roleDefinitionIdOrName: 'Storage Blob Data Contributor'
-        }
-      ]
+      blobPrivateDnsZoneResourceId: dns_zones.outputs.storagePrivateDnsZoneId
+      // name: '<name>'
+      // roleAssignments: [
+      //   {
+      //     principalId: '<principalId>'
+      //     principalType: 'ServicePrincipal'
+      //     roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+      //   }
+      // ]
     }
     tags: {
       Environment: 'Example'
-      'hidden-title': 'This is visible in the resource name'
+      'hidden-title': 'Foundry from AVM Module'
       Role: 'DeploymentValidation'
+      SecurityControl: 'Ignore'
     }
   }
 }
 
-module foundry './modules/ai/ai-foundry.bicep' = {
-  name: 'foundry-shared'
-  params: {
-    managedIdentityId: '' // Use System Assigned Identity
-    name: 'ai-foundry-${resourceToken}'
-    location: location
-    appInsightsName: logAnalytics.outputs.applicationInsightsName
-    publicNetworkAccess: 'Enabled'
-    agentSubnetId: vnet.outputs.agentSubnetId // Use the first agent subnet
-    deployments: [
-
-    ]
-  }
-}
-
-module project1 './modules/ai/ai-project-with-caphost.bicep' = {
-  name: 'ai-project-1-with-caphost-${resourceToken}'
-  params: {
-    foundryName: foundry.outputs.name
-    location: location
-    projectId: 1
-    aiDependencies: ai_dependencies.outputs.aiDependencies
-  }
-}
-
-module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.18.0' = {
+module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.18.0' = if (false) {
   name: 'virtualMachineDeployment'
   params: {
     // Required parameters
@@ -220,6 +201,4 @@ module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.18.0' = {
   }
 }
 
-output capability1HostUrl string = project1.outputs.capabilityHostUrl
-output ai1ConnectionUrl string = project1.outputs.aiConnectionUrl
-output foundry1_connection_string string = project1.outputs.foundry_connection_string
+output ai_project_name string = aiFoundry.outputs.aiProjectName

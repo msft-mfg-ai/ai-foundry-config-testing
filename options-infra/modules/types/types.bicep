@@ -36,6 +36,7 @@ type DnsZonesType = {
   #disable-next-line no-hardcoded-env-urls
   'privatelink.blob.core.windows.net': DNSZoneType?
   'privatelink.documents.azure.com': DNSZoneType?
+  'privatelink.keyvault.azure.com': DNSZoneType?
 }
 
 @export()
@@ -46,6 +47,7 @@ var DefaultDNSZones = {
   'privatelink.search.windows.net': null
   'privatelink.blob.${environment().suffixes.storage}': null
   'privatelink.documents.azure.com': null
+  'privatelink.keyvault.azure.com': null
 }
 
 @export()
