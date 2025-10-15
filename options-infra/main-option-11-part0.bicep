@@ -8,10 +8,10 @@
 // DNS - Sub 3
 // App VNET with peering to Foundry VNET
 // ------------------
-// Create main-option-10.local.bicepparam based on main-option-10.bicepparam
+// Create main-option-11-part0.local.bicepparam based on main-option-11-part0.bicepparam
 //
 // Deploy using:
-// az deployment mg create --management-group-id <name>-management-group --template-file main-option-10.bicep --parameters main-option-10.local.bicepparam -l westus
+// az deployment mg create --management-group-id <name>-management-group --template-file main-option-11-part0.bicep --parameters main-option-11-part0.local.bicepparam -l westus
 targetScope = 'managementGroup'
 
 param foundryLocation string = 'swedencentral'
