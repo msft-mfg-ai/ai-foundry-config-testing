@@ -51,12 +51,12 @@ module foundry '../ai/ai-foundry.bicep' = {
 }
 
 module aiProject '../ai/ai-project.bicep' = {
-  name: 'ai-project-${appName}'
+  name: 'deployment-for-ai-project-${appName}'
   scope: resourceGroup()
   params: {
     foundry_name: foundry.outputs.name
     location: location
-    project_name: 'ai-project--${appName}'
+    project_name: 'ai-project-${appName}'
     project_description: 'AI Project ${appName} with existing, external AI resource ${existingAiResourceId}'
     display_name: 'AI Project ${appName} with ${existingAiResourceKind}'
     managedIdentityId: '' // Use System Assigned Identity

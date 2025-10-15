@@ -55,6 +55,8 @@ resource existingAiResource 'Microsoft.CognitiveServices/accounts@2023-05-01' ex
   name: existingAiResourceIdName
 }
 
+var isAiResourceValid = !empty(existingAiResourceId) && existingAiResource!.location == location ? true : fail('The existing AI resource must be in the same region as the location parameter and must exist. See: https://github.com/azure-ai-foundry/foundry-samples/tree/main/samples/microsoft/infrastructure-setup/42-basic-agent-setup-with-customization and https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/use-your-own-resources')
+
 #disable-next-line BCP081
 resource foundry 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
   name: foundry_name
@@ -101,12 +103,12 @@ resource byoAoaiConnectionFoundry 'Microsoft.CognitiveServices/accounts/connecti
   parent: foundry
   properties: {
     category: existingAiKind
-    target: existingAiResource.properties.endpoint
+    target: existingAiResource!.properties.endpoint
     authType: 'AAD'
     metadata: {
       ApiType: 'Azure'
       ResourceId: existingAiResource.id
-      location: existingAiResource.location
+      location: existingAiResource!.location
     }
   }
 }
@@ -116,12 +118,12 @@ resource byoAoaiConnection 'Microsoft.CognitiveServices/accounts/projects/connec
   parent: foundry_project
   properties: {
     category: existingAiKind
-    target: existingAiResource.properties.endpoint
+    target: existingAiResource!.properties.endpoint
     authType: 'AAD'
     metadata: {
       ApiType: 'Azure'
       ResourceId: existingAiResource.id
-      location: existingAiResource.location
+      location: existingAiResource!.location
     }
   }
 }
@@ -141,7 +143,7 @@ resource accountCapabilityHost 'Microsoft.CognitiveServices/accounts/capabilityH
 }
 
 resource project_connection_cosmosdb_account 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (!empty(cosmosDBName)) {
-  name: 'cosmosDBName-for-${project_name}'
+  name: '${cosmosDBName}-for-${project_name}'
   parent: foundry_project
   properties: {
     category: 'CosmosDB'
@@ -156,7 +158,7 @@ resource project_connection_cosmosdb_account 'Microsoft.CognitiveServices/accoun
 }
 
 resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (!empty(azureStorageName)) {
-  name: 'azureStorageName-for-${project_name}'
+  name: '${azureStorageName}-for-${project_name}'
   parent: foundry_project
   properties: {
     category: 'AzureStorageAccount'
@@ -171,7 +173,7 @@ resource project_connection_azure_storage 'Microsoft.CognitiveServices/accounts/
 }
 
 resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (!empty(aiSearchName)) {
-  name: 'aiSearchName-for-${project_name}'
+  name: '${aiSearchName}-for-${project_name}'
   parent: foundry_project
   properties: {
     category: 'CognitiveSearch'
@@ -188,6 +190,7 @@ resource project_connection_azureai_search 'Microsoft.CognitiveServices/accounts
 output project_name string = foundry_project.name
 output project_id string = foundry_project.id
 output projectConnectionString string = 'https://${foundry_name}.services.ai.azure.com/api/projects/${project_name}'
+output isAiResourceValid bool = isAiResourceValid
 
 // return the BYO connection names
 output cosmosDBConnection string = project_connection_cosmosdb_account.name

@@ -41,7 +41,10 @@ resource existingCosmosDB 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' exi
 
 // CosmosDB creation
 
+// regions that do not support Cosmos DB in EUAP or have limited capacity
 var canaryRegions = ['eastus2euap', 'centraluseuap']
+// TODO: fix if capacity issue is resolved
+var lowCapacityRegions = ['eastus', 'northeurope', 'westeurope']
 var cosmosDbRegion = contains(canaryRegions, location) ? 'westus' : location
 resource cosmosDB 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = if(!cosmosDBExists) {
   name: cosmosDBName
@@ -58,7 +61,7 @@ resource cosmosDB 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = if(!cosmo
     enableFreeTier: false
     locations: [
       {
-        locationName: location
+        locationName: contains(lowCapacityRegions, location) ? 'eastus2' : location
         failoverPriority: 0
         isZoneRedundant: false
       }

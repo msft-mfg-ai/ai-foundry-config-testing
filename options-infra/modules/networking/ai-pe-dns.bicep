@@ -7,8 +7,8 @@ param aiAccountSubscriptionId string = subscription().subscriptionId
 
 @description('The resource ID of the subnet where the private endpoint will be created')
 param peSubnetId string
-@description('The resource ID of the virtual network where the private endpoint will be created')
-param vnetId string
+@description('The resource ID of the virtual network where the private endpoint will be created. Required if no existing DNS zones are provided.')
+param vnetId string?
 
 @description('ResourceToken for unique resource names')
 param resourceToken string
@@ -25,8 +25,12 @@ var aiServicesDnsZone = existingDnsZones[?aiServicesDnsZoneName]
 var openAiDnsZone = existingDnsZones[?openAiDnsZoneName]
 var cognitiveServicesDnsZone = existingDnsZones[?cognitiveServicesDnsZoneName]
 
+var validDnsConfig = (empty(aiServicesDnsZone) || empty(openAiDnsZone) || empty(cognitiveServicesDnsZone)) && empty(vnetId)
+  ? fail('vnetId must be provided if any DNS zones are to be created.')
+  : true
+
 // ---- Resource references ----
-resource aiAccount 'Microsoft.CognitiveServices/accounts@2023-05-01' existing =  {
+resource aiAccount 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
   name: aiAccountName
   scope: resourceGroup(aiAccountSubscriptionId, aiAccountNameResourceGroup)
 }
@@ -74,7 +78,6 @@ var cognitiveServicesDnsZoneId = empty(cognitiveServicesDnsZone)
   ? cognitiveServicesPrivateDnsZone.id
   : existingCognitiveServicesPrivateDnsZone.id
 
-
 // ---- DNS VNet Links ----
 resource aiServicesLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (empty(aiServicesDnsZone)) {
   parent: aiServicesPrivateDnsZone
@@ -103,7 +106,6 @@ resource cognitiveServicesLink 'Microsoft.Network/privateDnsZones/virtualNetwork
     registrationEnabled: false
   }
 }
-
 
 // Private endpoint for AI Services account
 // - Creates network interface in customer hub subnet
@@ -142,3 +144,5 @@ resource aiServicesDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGr
     empty(cognitiveServicesDnsZone) ? cognitiveServicesLink : null
   ]
 }
+
+output validDnsConfig bool = validDnsConfig

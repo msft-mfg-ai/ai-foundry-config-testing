@@ -14,7 +14,7 @@ var app1ResourceGroupName = '${app1Name}-rg'
 var app2ResourceGroupName = '${app2Name}-rg'
 var foundryDependenciesResourceGroupName = '${applicationName}-foundry-dependencies-rg'
 
-@description('The resource ID of the existing Ai resource - Azure Open AI, AI Services or AI Foundry.')
+@description('The resource ID of the existing Ai resource - Azure Open AI, AI Services or AI Foundry. WARNING: existing AI Foundry must be in the same region as the location parameter.')
 param existingAiResourceId string
 
 @description('The Kind of AI Service, can be "AzureOpenAI" or "AIServices". For AI Foundry use AI Services. Its not recommended to use Azure OpenAI resource, since that only provided access to OpenAI models.')
@@ -52,7 +52,6 @@ module vnet 'modules/networking/vnet.bicep' = {
     extraAgentSubnets: 2
   }
 }
-
 
 module ai_dependencies './modules/ai/ai-dependencies-with-dns.bicep' = {
   name: 'ai-dependencies-with-dns'
