@@ -1,6 +1,10 @@
 // This bicep files deploys simple foundry standard with dependencies in a different region across 3 subscriptions
-// Foundry and dependencies - Sub 1
-// Private endpoints - Sub 2
+// Sub 1 - AI
+// Sub 2 - App
+// Sub 3 - DNS
+// Foundry with models - Sub 1 (AI)
+// Foundry dependencies - Sub 2 (App)
+// Private endpoints - Sub 1 (AI)
 // DNS - Sub 3
 // App VNET with peering to Foundry VNET
 // ------------------
