@@ -61,6 +61,7 @@ module foundry_private_endpoint 'modules/networking/ai-pe-dns.bicep' = {
   params: {
     aiAccountName: existingAiResourceSplit[8]
     aiAccountNameResourceGroup: existingAiResourceSplit[4]
+    aiAccountSubscriptionId: existingAiResourceSplit[2]
     peSubnetId: peSubnetId
     resourceToken: resourceToken
     vnetId: null
