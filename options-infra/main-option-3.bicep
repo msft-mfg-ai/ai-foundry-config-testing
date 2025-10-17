@@ -10,9 +10,17 @@ param location string
 param applicationName string = 'my-app'
 param app1Name string = '${applicationName}-1'
 param app2Name string = '${applicationName}-2'
+param deployApp2 bool = true // Set to false to deploy only one app
+
 var app1ResourceGroupName = '${app1Name}-rg'
 var app2ResourceGroupName = '${app2Name}-rg'
 var foundryDependenciesResourceGroupName = '${applicationName}-foundry-dependencies-rg'
+
+var tags = {
+  purpose: 'AI Foundry testing option 3'
+  option: '3'
+  description: 'Two apps, one foundry dependencies RG, existing Foundry'
+}
 
 @description('The resource ID of the existing Ai resource - Azure Open AI, AI Services or AI Foundry. WARNING: existing AI Foundry must be in the same region as the location parameter.')
 param existingAiResourceId string
@@ -29,14 +37,17 @@ var resourceToken = toLower(uniqueString(subscription().subscriptionId, location
 resource app1ResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: app1ResourceGroupName
   location: location
+  tags: tags
 }
-resource app2ResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+resource app2ResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = if(deployApp2) {
   name: app2ResourceGroupName
   location: location
+  tags: tags
 }
 resource foundryDependenciesResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: foundryDependenciesResourceGroupName
   location: location
+  tags: tags
 }
 
 
@@ -78,7 +89,7 @@ module app1 'modules/app/app-rg.bicep' = {
   }
 }
 
-module app2 'modules/app/app-rg.bicep' = {
+module app2 'modules/app/app-rg.bicep' = if(deployApp2) {
   name: 'app-${app2Name}'
   scope: app2ResourceGroup
   params: {
@@ -104,11 +115,11 @@ module ai1_private_endpoint 'modules/networking/ai-pe-dns.bicep' = {
   }
 }
 
-module ai2_private_endpoint 'modules/networking/ai-pe-dns.bicep' = {
+module ai2_private_endpoint 'modules/networking/ai-pe-dns.bicep' = if(deployApp2) {
   name: '${app2Name}-ai-private-endpoint'
   scope: foundryDependenciesResourceGroup
   params: {
-    aiAccountName: app2.outputs.aiAccountName
+    aiAccountName: app2!.outputs.aiAccountName
     aiAccountNameResourceGroup: app2ResourceGroup.name
     peSubnetId: vnet.outputs.peSubnetId
     resourceToken: resourceToken
@@ -118,8 +129,8 @@ module ai2_private_endpoint 'modules/networking/ai-pe-dns.bicep' = {
 }
 
 output capability1HostUrl string = app1.outputs.capabilityHostUrl
-output capability2HostUrl string = app2.outputs.capabilityHostUrl
+output capability2HostUrl string = deployApp2 ? app2!.outputs.capabilityHostUrl : ''
 output ai1ConnectionUrl string = app1.outputs.aiConnectionUrl
-output ai2ConnectionUrl string = app2.outputs.aiConnectionUrl
+output ai2ConnectionUrl string = deployApp2 ? app2!.outputs.aiConnectionUrl : ''
 output foundry1_connection_string string = app1.outputs.projectConnectionString
-output foundry2_connection_string string = app2.outputs.projectConnectionString
+output foundry2_connection_string string = deployApp2 ? app2!.outputs.projectConnectionString : ''

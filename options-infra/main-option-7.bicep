@@ -7,7 +7,6 @@ param user_principal_id string = ''
 
 var resourceToken = toLower(uniqueString(resourceGroup().id, location))
 
-
 // vnet doesn't have to be in the same RG as the AI Services
 // each foundry needs it's own delegated subnet, projects inside of one Foundry share the subnet for the Agents Service
 module vnet './modules/networking/vnet.bicep' = {
@@ -40,10 +39,70 @@ module logAnalytics './modules/monitor/loganalytics.bicep' = {
   }
 }
 
+// regions that do not support Cosmos DB in EUAP or have limited capacity
+var canaryRegions = ['eastus2euap', 'centraluseuap']
+// TODO: fix if capacity issue is resolved
+var lowCapacityRegions = ['eastus', 'northeurope', 'westeurope', 'southcentralus']
+var cosmosDbRegion = contains(canaryRegions, location) ? 'westus' : location
+var isLowCapacityRegion = contains(lowCapacityRegions, location)
+resource cosmosDB 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = if (isLowCapacityRegion) {
+  name: 'cosmosdb-${resourceToken}'
+  location: cosmosDbRegion
+  kind: 'GlobalDocumentDB'
+  properties: {
+    consistencyPolicy: {
+      defaultConsistencyLevel: 'Session'
+    }
+    disableLocalAuth: true
+    enableAutomaticFailover: false
+    enableMultipleWriteLocations: false
+    publicNetworkAccess: 'Disabled'
+    enableFreeTier: false
+    locations: [
+      {
+        locationName: contains(lowCapacityRegions, location) ? 'eastus2' : location
+        failoverPriority: 0
+        isZoneRedundant: false
+      }
+    ]
+    databaseAccountOfferType: 'Standard'
+  }
+}
+
+module cosmosPE 'br/public:avm/res/network/private-endpoint:0.11.1' = {
+  name: '${cosmosDB.name}-pe-deployment'
+  params: {
+    // Required parameters
+    name: '${cosmosDB.name}-pe'
+    location: location
+    subnetResourceId: vnet.outputs.peSubnetId
+    // Non-required parameters
+    privateDnsZoneGroup: {
+      privateDnsZoneGroupConfigs: [
+        {
+          privateDnsZoneResourceId: dns_zones.outputs.cosmosDBPrivateDnsZoneId
+        }
+      ]
+    }
+    privateLinkServiceConnections: [
+      {
+        name: cosmosDB.name
+        properties: {
+          groupIds: [
+            'Sql'
+          ]
+          privateLinkServiceId: cosmosDB.id
+        }
+      }
+    ]
+  }
+}
+
 // https://github.com/Azure/bicep-avm-ptn-aiml-landing-zone
 // https://github.com/Azure/bicep-registry-modules/tree/main/avm/ptn/ai-ml/ai-foundry
-module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.4.0' = {
+module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.5.0' = {
   name: 'aiFoundryDeployment'
+  dependsOn: [cosmosPE]
   params: {
     // Required parameters
     baseName: 'foundry'
@@ -99,6 +158,7 @@ module aiFoundry 'br/public:avm/ptn/ai-ml/ai-foundry:0.4.0' = {
       // ]
     }
     cosmosDbConfiguration: {
+      existingResourceId: isLowCapacityRegion ? cosmosDB.id : ''
       // name: '<name>'
       privateDnsZoneResourceId: dns_zones.outputs.cosmosDBPrivateDnsZoneId
       // roleAssignments: [

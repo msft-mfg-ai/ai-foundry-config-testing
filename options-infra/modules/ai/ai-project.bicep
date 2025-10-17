@@ -55,7 +55,7 @@ resource existingAiResource 'Microsoft.CognitiveServices/accounts@2023-05-01' ex
   name: existingAiResourceIdName
 }
 
-var isAiResourceValid = !empty(existingAiResourceId) && existingAiResource!.location == location ? true : fail('The existing AI resource must be in the same region as the location parameter and must exist. See: https://github.com/azure-ai-foundry/foundry-samples/tree/main/samples/microsoft/infrastructure-setup/42-basic-agent-setup-with-customization and https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/use-your-own-resources')
+var isAiResourceValid = empty(existingAiResourceId) || (existingAiResource!.location == location ) ? true : fail('The existing AIServices resource must be in the same region as the location parameter and must exist. See: https://github.com/azure-ai-foundry/foundry-samples/tree/main/samples/microsoft/infrastructure-setup/42-basic-agent-setup-with-customization and https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/use-your-own-resources')
 
 #disable-next-line BCP081
 resource foundry 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {

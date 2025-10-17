@@ -19,6 +19,7 @@ var aiSearchName = 'project-search-${resourceToken}'
 var cosmosDBName = 'project-cosmosdb-${resourceToken}'
 
 module ai_dependencies '../ai-dependencies/standard-dependent-resources.bicep' = {
+  name: 'ai-dependencies-deployment'
   params: {
     location: location
     azureStorageName: azureStorageName
@@ -46,7 +47,7 @@ module ai_dependencies '../ai-dependencies/standard-dependent-resources.bicep' =
 // 3. Links private DNS zones to the VNet for name resolution
 // 4. Configures network policies to restrict access to private endpoints only
 module privateEndpointAndDNS '../networking/private-endpoint-and-dns.bicep' = {
-  name: 'private-endpoints-and-dns'
+  name: 'private-endpoints-and-dns-deployment'
   params: {
     aiAccountName: aiServicesName // AI Services to secure
     aiAccountNameResourceGroup: aiAccountNameResourceGroupName
