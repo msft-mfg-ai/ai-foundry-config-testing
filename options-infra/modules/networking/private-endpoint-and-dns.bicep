@@ -79,7 +79,13 @@ module ai_private_endpoint 'ai-pe-dns.bicep' = if (!empty(aiAccountName)) {
     vnetId: vnet.id
     existingDnsZones: zones
   }
+  dependsOn: [
+      openAiPrivateDnsZone
+      cognitiveServicesPrivateDnsZone
+      aiServicesPrivateDnsZone
+    ]
 }
+
 
 resource aiSearch 'Microsoft.Search/searchServices@2023-11-01' existing = {
   name: aiSearchName

@@ -8,10 +8,27 @@ param location string = resourceGroup().location
 
 var resourceToken = toLower(uniqueString(resourceGroup().id, location))
 
+/*
+Ensure that the address spaces for the used VNET does not overlap with any existing 
+networks in your Azure environment or reserved IP ranges like the following: 
+* 169.254.0.0/16 - 169.254.0.0 to 169.254.255.255
+* 172.30.0.0/16 - 172.30.0.0 to 172.30.255.255
+* 172.31.0.0/16 - 172.31.0.0 to 172.31.255.255
+* 192.0.2.0/24 - 192.0.2.0 to 192.0.2.255
+* 0.0.0.0/8 - 0.0.0.0 to 0.255.255.255
+* 127.0.0.0/8 - 127.0.0.0 to 127.255.255.255
+* 100.100.0.0/17 - 100.100.0.0 to 100.100.127.255
+* 100.100.192.0/19 - 100.100.192.0 to 100.100.223.255
+* 100.100.224.0/19 - 100.100.224.0 to 100.100.255.255
+* 100.64.0.0/11 - 100.64.0.0 to 100.95.255.255
+This includes all address space(s) you have in your VNET if you have more than one,
+and peered VNETs.
+*/
+
 module hubCidr './modules/private-dns/private-dns-cidr.bicep' = {
   name: 'hubCidr'
   params: {
-    vnetAddressPrefix: '44.16.0.0/25'
+    vnetAddressPrefix: '100.32.0.0/25'
   }
 }
 
@@ -22,7 +39,7 @@ module vnet './modules/networking/vnet.bicep' = {
   params: {
     vnetName: 'project-vnet-${resourceToken}'
     location: location
-    vnetAddressPrefix: '172.17.0.0/22'
+    vnetAddressPrefix: '192.168.0.0/22'
     customDNS: hubCidr.outputs.hubVnetRanges.privateDnsIp
   }
 }

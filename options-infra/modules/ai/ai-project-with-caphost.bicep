@@ -10,6 +10,7 @@ param existingAiResourceId string?
 param existingAiResourceKind string = 'AIServices'
 param location string
 param foundryName string
+param managedIdentityId string? // Use System Assigned Identity
 
 param projectId int
 
@@ -25,7 +26,7 @@ module aiProject './ai-project.bicep' = {
     project_name: 'ai-project-${projectId}'
     project_description: 'AI Project ${projectId}'
     display_name: 'AI Project ${projectId}'
-    managedIdentityId: null // Use System Assigned Identity
+    managedIdentityId: managedIdentityId // Use System Assigned Identity
     existingAiResourceId: existingAiResourceId
     existingAiKind: existingAiResourceKind
 

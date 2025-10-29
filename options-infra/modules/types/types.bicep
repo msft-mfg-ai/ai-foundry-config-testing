@@ -76,3 +76,29 @@ type HubVnetRangesType = {
   privateDnsIp: string
   vnetAddressPrefix: string
 }
+
+@export()
+type FoundryRoleAssignmentsType = {
+  foundry: CognitiveServicesRoleAssignmentsType[]
+  project: CognitiveServicesRoleAssignmentsType[]
+  aiServices: CognitiveServicesRoleAssignmentsType[]
+  aiSearch: SearchRoleAssignmentsType[]
+  storage: StorageRoleAssignmentsType[]
+}
+
+@export()
+type StorageRoleAssignmentsType =
+  | 'Storage Blob Data Contributor'
+  | 'Storage Blob Data Owner'
+  | 'Storage Blob Data Reader'
+@export()
+type SearchRoleAssignmentsType = 'Search Index Data Contributor' | 'Search Index Data Reader'
+@export()
+type CognitiveServicesRoleAssignmentsType =
+  | 'Reader'
+  | 'Cognitive Services User'
+  | 'Cognitive Services Contributor'
+  | 'Cognitive Services OpenAI User'
+  | 'Azure AI User'
+  | 'Azure AI Project Manager'
+  | 'Azure AI Account Owner'
