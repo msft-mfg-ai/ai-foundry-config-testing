@@ -18,17 +18,18 @@ var roleAssignments types.FoundryRoleAssignmentsType = {
     'Reader'
   ]
   project: [
-    'Azure AI User'
+    'Azure AI Project Manager'
   ]
   aiServices: [
-    // 'Cognitive Services OpenAI User'
+    //'Reader'
+    'Cognitive Services OpenAI User'
   ]
   storage: [
     // 'Storage Blob Data Contributor'
   ]
   aiSearch: [
     // 'Search Index Data Contributor'
-    // 'Search Index Data Reader'
+    'Search Index Data Reader'
   ]
 }
 
@@ -140,6 +141,17 @@ module projects '../modules/ai/ai-project-with-caphost.bicep' = [
     }
   }
 ]
+
+module projects_keys '../modules/ai/ai-project-with-caphost.bicep' = {
+    name: 'ai-project-keys-with-caphost-${resourceToken}'
+    params: {
+      foundryName: foundry_projects.outputs.name
+      location: location
+      projectId: 4
+      aiDependencies: ai_dependencies.outputs.aiDependencies
+      existingAiResourceId: foundry.outputs.id
+    }
+  }
 
 // ----------------------------------------------------------------------------------------------
 // -- Role Assignments for Testing Permissions --------------------------------------------------
