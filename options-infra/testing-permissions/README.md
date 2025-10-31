@@ -116,9 +116,6 @@ Even though there's an error, Agent got created.
 - ❌ Error with list secrets on the agent screen
 - ❌ All projects are visible not just one with `AI User` assignment
 
-Even though there's an error, Playground works.
-
-![Playground](step4-playground-works.png)
 
 ```bicep
 var roleAssignments types.FoundryRoleAssignmentsType = {
@@ -137,6 +134,10 @@ var roleAssignments types.FoundryRoleAssignmentsType = {
   ]
 }
 ```
+Even though there's an error, Playground works after refresh.
+
+![Playground](step4-playground-works.png)
+
 
 Agent list screen still displays the error with "list secrets", even when all connections are created with AAD.
 
