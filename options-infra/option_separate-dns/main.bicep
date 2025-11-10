@@ -4,7 +4,7 @@
 // are in another VNET, with Private DNS resolver and VNET peering to enable name resolution
 targetScope = 'subscription'
 
-param location string
+param location string = 'westus'
 
 var resourceToken = toLower(uniqueString(subscription().id, location))
 
@@ -137,14 +137,17 @@ module foundry '../modules/ai/ai-foundry.bicep' = {
 
 module foundry_pe '../modules/networking/ai-pe-dns.bicep' = {
   name: 'foundry-pe-dns'
-  scope: rg_foundry
+  scope: rg_central
   params: {
     aiAccountName: foundry.outputs.name
     aiAccountNameResourceGroup: foundry.outputs.resourceGroupName
     aiAccountSubscriptionId: foundry.outputs.subscriptionId
     peSubnetId: privateDns.outputs.peSubnetId
+    vnetId: privateDns.outputs.virtualNetworkId
     resourceToken: resourceToken
+    existingDnsZones: dns_zones.outputs.DNSZones
   }
+  dependsOn: [dns_zones]
 }
 
 module project1 '../modules/ai/ai-project-with-caphost.bicep' = {

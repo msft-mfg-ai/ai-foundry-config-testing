@@ -5,6 +5,13 @@ param vnetResourceIdsForLink string[] = []
 param peeringResourceId string[] = []
 param hubVnetRanges types.HubVnetRangesType
 
+module networkSecurityGroup 'br/public:avm/res/network/network-security-group:0.5.1' = {
+  name: 'networkSecurityGroupDeployment'
+  params: {
+    name: 'pe-nsg'
+  }
+}
+
 module virtualNetwork 'br/public:avm/res/network/virtual-network:0.7.0' = {
   name: 'hub-vnet-deployment'
   params: {
@@ -25,6 +32,7 @@ module virtualNetwork 'br/public:avm/res/network/virtual-network:0.7.0' = {
       {
         name: 'pe-snet'
         addressPrefix: hubVnetRanges.peSubnet
+        networkSecurityGroupResourceId: networkSecurityGroup.outputs.resourceId
       }
     ]
     peerings: [
