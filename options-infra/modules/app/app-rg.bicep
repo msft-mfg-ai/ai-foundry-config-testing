@@ -44,7 +44,7 @@ module foundry '../ai/ai-foundry.bicep' = {
     managedIdentityId: '' // Use System Assigned Identity
     name: 'ai-foundry-no-models-${resourceToken}'
     location: location
-    appInsightsName: logAnalytics.outputs.applicationInsightsName
+    appInsightsId: logAnalytics.outputs.applicationInsightsId
     publicNetworkAccess: 'Enabled'
     agentSubnetId: agentSubnetId
   }

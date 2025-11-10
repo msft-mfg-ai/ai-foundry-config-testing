@@ -2,8 +2,11 @@ param newLogAnalyticsName string = ''
 param newApplicationInsightsName string = ''
 
 param existingLogAnalyticsName string = ''
-param existingLogAnalyticsRgName string = ''
+param existingLogAnalyticsRgName string = resourceGroup().name
+param existingLogAnalyticsSubId string = subscription().subscriptionId
 param existingApplicationInsightsName string = ''
+param existingApplicationInsightsRgName string = resourceGroup().name
+param existingApplicationInsightsSubId string = subscription().subscriptionId
 param managedIdentityId string = ''
 
 param location string = resourceGroup().location
@@ -33,11 +36,12 @@ resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-p
 // -------------------------------------------------------
 resource existingLogAnalyticsResource 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = if (useExistingLogAnalytics) {
   name: existingLogAnalyticsName
-  scope: resourceGroup(existingLogAnalyticsRgName)
+  scope: resourceGroup(existingLogAnalyticsSubId, existingLogAnalyticsRgName)
 }
 
 resource existingApplicationInsightsResource 'Microsoft.Insights/components@2020-02-02' existing = if (useExistingAppInsights) {
   name: existingApplicationInsightsName
+  scope: resourceGroup(existingApplicationInsightsSubId, existingApplicationInsightsRgName)
 }
 
 resource newLogAnalyticsResource 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if (!useExistingLogAnalytics) {
@@ -86,15 +90,16 @@ module azureMonitorPrivateLinkScopePrivateEndpoint '../networking/private-endpoi
   }
 }
  
-resource roleAssignmentAppInsights 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(managedIdentityId) && useExistingAppInsights) {
-  name: guid(subscription().id, existingApplicationInsightsResource.id, identity.id, 'Monitoring Metrics Publisher')
-  scope: existingApplicationInsightsResource
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', monitoringMetricsPublisherId)
-    principalId: identity!.properties.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
+// do not assign role if using existing Application Insights
+// resource roleAssignmentAppInsights 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(managedIdentityId) && useExistingAppInsights) {
+//   name: guid(subscription().id, existingApplicationInsightsResource.id, identity.id, 'Monitoring Metrics Publisher')
+//   scope: existingApplicationInsightsResource
+//   properties: {
+//     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', monitoringMetricsPublisherId)
+//     principalId: identity!.properties.principalId
+//     principalType: 'ServicePrincipal'
+//   }
+// }
 
 resource roleAssignmentAppInsightsNew 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(managedIdentityId) && !useExistingAppInsights) {
   name: guid(subscription().id, newApplicationInsightsResource.id, identity.id, 'Monitoring Metrics Publisher')

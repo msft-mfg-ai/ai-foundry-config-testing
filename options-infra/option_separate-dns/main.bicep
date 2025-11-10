@@ -2,11 +2,11 @@
 // ------------------
 // Sample explores scenario where Foundry Agents Service is in one VNET, while all the dependencies
 // are in another VNET, with Private DNS resolver and VNET peering to enable name resolution
-targetScope = 'resourceGroup'
+targetScope = 'subscription'
 
-param location string = resourceGroup().location
+param location string
 
-var resourceToken = toLower(uniqueString(resourceGroup().id, location))
+var resourceToken = toLower(uniqueString(subscription().id, location))
 
 /*
 Ensure that the address spaces for the used VNET does not overlap with any existing 
@@ -25,7 +25,26 @@ This includes all address space(s) you have in your VNET if you have more than o
 and peered VNETs.
 */
 
-module hubCidr './modules/private-dns/private-dns-cidr.bicep' = {
+var tags = {
+  Environment: 'Non-Prod'
+  'hidden-title': 'Test Foundry with separate DNS'
+  Role: 'DeploymentValidation'
+}
+
+resource rg_central 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+  name: 'rg-central-${resourceToken}'
+  location: location
+  tags: tags
+}
+
+resource rg_foundry 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+  name: 'rg-foundry-${resourceToken}'
+  location: location
+  tags: tags
+}
+
+module hubCidr '../modules/private-dns/private-dns-cidr.bicep' = {
+  scope: rg_central
   name: 'hubCidr'
   params: {
     vnetAddressPrefix: '100.32.0.0/25'
@@ -34,31 +53,41 @@ module hubCidr './modules/private-dns/private-dns-cidr.bicep' = {
 
 // vnet doesn't have to be in the same RG as the AI Services
 // each foundry needs it's own delegated subnet, projects inside of one Foundry share the subnet for the Agents Service
-module vnet './modules/networking/vnet.bicep' = {
+module vnet '../modules/networking/vnet.bicep' = {
+  scope: rg_foundry
   name: 'vnet'
   params: {
     vnetName: 'project-vnet-${resourceToken}'
     location: location
     vnetAddressPrefix: '192.168.0.0/22'
-    customDNS: hubCidr.outputs.hubVnetRanges.privateDnsIp
   }
 }
 
-module privateDns './modules/private-dns/private-dns.bicep' = {
+module privateDns '../modules/private-dns/private-dns.bicep' = {
   name: 'private-dns'
+  scope: rg_central
   params: {
     location: location
     hubVnetRanges: hubCidr.outputs.hubVnetRanges
-    peeringResourceId: [vnet.outputs.virtualNetworkId]
-    vnetResourceIdsForLink: [vnet.outputs.virtualNetworkId]
+    // peeringResourceId: [vnet.outputs.virtualNetworkId]
+    // vnetResourceIdsForLink: [vnet.outputs.virtualNetworkId]
   }
 }
 
-module ai_dependencies './modules/ai/ai-dependencies-with-dns.bicep' = {
-  name: 'ai-dependencies-with-dns'
+module dns_zones '../modules/networking/dns-zones.bicep' = {
+  name: 'dns-zones-deployment'
+  scope: rg_central
   params: {
-    peSubnetName: privateDns.outputs.peSubnetName
-    vnetResourceId: privateDns.outputs.virtualNetworkId
+    vnetResourceIds: [privateDns.outputs.virtualNetworkId]
+  }
+}
+
+module ai_dependencies '../modules/ai/ai-dependencies-with-dns.bicep' = {
+  name: 'ai-dependencies-with-dns'
+  scope: rg_foundry
+  params: {
+    peSubnetName: vnet.outputs.peSubnetName
+    vnetResourceId: vnet.outputs.virtualNetworkId
     resourceToken: resourceToken
     aiServicesName: foundry.outputs.name
     aiAccountNameResourceGroupName: foundry.outputs.resourceGroupName
@@ -67,7 +96,8 @@ module ai_dependencies './modules/ai/ai-dependencies-with-dns.bicep' = {
 // --------------------------------------------------------------------------------------------------------------
 // -- Log Analytics Workspace and App Insights ------------------------------------------------------------------
 // --------------------------------------------------------------------------------------------------------------
-module logAnalytics './modules/monitor/loganalytics.bicep' = {
+module logAnalytics '../modules/monitor/loganalytics.bicep' = {
+  scope: rg_foundry
   name: 'log-analytics'
   params: {
     newLogAnalyticsName: 'log-analytics'
@@ -76,14 +106,15 @@ module logAnalytics './modules/monitor/loganalytics.bicep' = {
   }
 }
 
-module foundry './modules/ai/ai-foundry.bicep' = {
-  name: 'foundry-shared'
+module foundry '../modules/ai/ai-foundry.bicep' = {
+  scope: rg_foundry
+  name: 'foundry-app-1-deployment'
   params: {
     managedIdentityId: '' // Use System Assigned Identity
     name: 'ai-foundry-${resourceToken}'
     location: location
     appInsightsId: logAnalytics.outputs.applicationInsightsId
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: 'Disabled'
     agentSubnetId: vnet.outputs.agentSubnetId // Use the first agent subnet
     deployments: [
       {
@@ -104,8 +135,21 @@ module foundry './modules/ai/ai-foundry.bicep' = {
   }
 }
 
-module project1 './modules/ai/ai-project-with-caphost.bicep' = {
+module foundry_pe '../modules/networking/ai-pe-dns.bicep' = {
+  name: 'foundry-pe-dns'
+  scope: rg_foundry
+  params: {
+    aiAccountName: foundry.outputs.name
+    aiAccountNameResourceGroup: foundry.outputs.resourceGroupName
+    aiAccountSubscriptionId: foundry.outputs.subscriptionId
+    peSubnetId: privateDns.outputs.peSubnetId
+    resourceToken: resourceToken
+  }
+}
+
+module project1 '../modules/ai/ai-project-with-caphost.bicep' = {
   name: 'ai-project-1-with-caphost-${resourceToken}'
+  scope: rg_foundry
   params: {
     foundryName: foundry.outputs.name
     location: location
@@ -114,8 +158,9 @@ module project1 './modules/ai/ai-project-with-caphost.bicep' = {
   }
 }
 
-module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.20.0' = if (false) {
+module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.20.0' = {
   name: 'virtualMachineDeployment'
+  scope: rg_central
   params: {
     // Required parameters
     adminUsername: 'localAdminUser'
@@ -139,7 +184,7 @@ module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.20.0' = if (f
         ipConfigurations: [
           {
             name: 'ipconfig01'
-            subnetResourceId: vnet.outputs.peSubnetId
+            subnetResourceId: privateDns.outputs.peSubnetId
             pipConfiguration: {
               availabilityZones: []
               skuName: 'Basic'
@@ -165,7 +210,7 @@ module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.20.0' = if (f
     location: location
     publicKeys: [
       {
-        keyData: loadTextContent('../../../../.ssh/id_rsa.pub')
+        keyData: loadTextContent('../../../../../.ssh/id_rsa.pub')
         path: '/home/localAdminUser/.ssh/authorized_keys'
       }
     ]

@@ -5,7 +5,8 @@ param name string = ''
 param location string = resourceGroup().location
 param tags object = {}
 param agentSubnetId string = ''
-param appInsightsName string = ''
+@description('Application Insights resource ID to create the Azure Foundry connection')
+param appInsightsId string = ''
 @allowed([
   'Disabled'
   'Enabled'
@@ -59,6 +60,17 @@ resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-p
 resource existingAccount 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = if (useExistingService) {
   scope: resourceGroup(existing_CogServices_RG_Name, existing_CogServices_SubId)
   name: existing_CogServices_Name
+}
+
+// --------------------------- Application Insights resource if needed ------------------------------------------------
+var insightsParts string[] = split(appInsightsId ?? '', '/')
+var appInsightsName = length(insightsParts) > 0 ? insightsParts[length(insightsParts) - 1] : ''
+var appInsightsResourceGroupName = length(insightsParts) > 4 ? insightsParts[4] : ''
+var appInsightsSubscriptionId = length(insightsParts) > 2 ? insightsParts[2] : ''
+
+resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = if (!empty(appInsightsId)) {
+  name: appInsightsName
+  scope: resourceGroup(appInsightsSubscriptionId, appInsightsResourceGroupName)
 }
 
 // --------------------------------------------------------------------------------------------------------------
@@ -140,11 +152,6 @@ resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01
   }
 ]
 
-resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = if (!empty(appInsightsName)) {
-  name: appInsightsName
-  scope: resourceGroup()
-}
-
 // --------------------------------------------------------------------------------------------------------------
 // Outputs
 // --------------------------------------------------------------------------------------------------------------
@@ -154,7 +161,6 @@ output endpoint string = useExistingService ? existingAccount!.properties.endpoi
 output resourceGroupName string = useExistingService ? existing_CogServices_RG_Name : resourceGroup().name
 output subscriptionId string = useExistingService ? existing_CogServices_SubId : subscription().subscriptionId
 output cognitiveServicesKeySecretName string = cognitiveServicesKeySecretName
-
 
 output accountPrincipalId string = empty(managedIdentityId)
   ? (useExistingService ? (existingAccount.?identity.principalId ?? '') : account.?identity.principalId ?? '')

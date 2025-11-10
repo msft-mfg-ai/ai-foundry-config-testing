@@ -1,0 +1,6 @@
+# deploying using AZD because https://github.com/Azure/azure-cli/pull/31990
+name: separate-dns
+
+infra:
+  provider: bicep
+  path: .

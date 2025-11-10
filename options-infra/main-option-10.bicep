@@ -169,7 +169,7 @@ module foundry './modules/ai/ai-foundry.bicep' = {
   params: {
     managedIdentityId: '' // Use System Assigned Identity
     name: 'ai-foundry-${resourceToken}'
-    appInsightsName: logAnalytics.outputs.applicationInsightsName
+    appInsightsId: logAnalytics.outputs.applicationInsightsId
     publicNetworkAccess: 'Enabled'
     agentSubnetId: foundry_vnet.outputs.agentSubnetId
     deployments: [

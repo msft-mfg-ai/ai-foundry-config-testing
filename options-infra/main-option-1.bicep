@@ -29,7 +29,7 @@ module foundry './modules/ai/ai-foundry.bicep' = {
     managedIdentityId: identity.outputs.managedIdentityId
     name: 'ai-foundry-${resourceToken}'
     location: location
-    appInsightsName: logAnalytics.outputs.applicationInsightsName
+    appInsightsId: logAnalytics.outputs.applicationInsightsId
     publicNetworkAccess: 'Enabled'
         deployments: [
       {

@@ -55,7 +55,9 @@ resource existingAiResource 'Microsoft.CognitiveServices/accounts@2023-05-01' ex
   name: existingAiResourceIdName
 }
 
-var isAiResourceValid = empty(existingAiResourceId) || (existingAiResource!.location == location ) ? true : fail('The existing AIServices resource must be in the same region as the location parameter and must exist. See: https://github.com/azure-ai-foundry/foundry-samples/tree/main/samples/microsoft/infrastructure-setup/42-basic-agent-setup-with-customization and https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/use-your-own-resources')
+var isAiResourceValid = empty(existingAiResourceId) || (existingAiResource!.location == location)
+  ? true
+  : fail('The existing AIServices resource must be in the same region as the location parameter and must exist. See: https://github.com/azure-ai-foundry/foundry-samples/tree/main/samples/microsoft/infrastructure-setup/42-basic-agent-setup-with-customization and https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/use-your-own-resources')
 
 #disable-next-line BCP081
 resource foundry 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
@@ -193,10 +195,10 @@ output projectConnectionString string = 'https://${foundry_name}.services.ai.azu
 output isAiResourceValid bool = isAiResourceValid
 
 // return the BYO connection names
-output cosmosDBConnection string = project_connection_cosmosdb_account.name
+output cosmosDBConnection string = empty(cosmosDBName) ? '' : project_connection_cosmosdb_account.name
 output capabilityHostName string = accountCapabilityHost.name
-output azureStorageConnection string = project_connection_azure_storage.name
-output aiSearchConnection string = project_connection_azureai_search.name
+output azureStorageConnection string = empty(azureStorageName) ? '' : project_connection_azure_storage.name
+output aiSearchConnection string = empty(aiSearchName) ? '' : project_connection_azureai_search.name
 output aiFoundryConnectionName string = empty(existingAiResourceId)
   ? ''
   : usingFoundryAiConnection ? byoAiFoundryConnectionName : byoAiProjectConnectionName
