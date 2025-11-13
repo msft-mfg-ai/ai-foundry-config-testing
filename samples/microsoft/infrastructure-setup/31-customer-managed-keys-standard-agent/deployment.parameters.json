@@ -1,0 +1,39 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": ""
+    },
+    "aiFoundryName": {
+      "value": ""
+    },
+    "projectName": {
+      "value": ""
+    },
+    "aiSearchResourceId": {
+      "value": ""
+    },
+    "azureStorageAccountResourceId": {
+      "value": ""
+    },
+    "azureCosmosDBAccountResourceId": {
+      "value": ""
+    },
+    "projectCapHost": {
+      "value": "projcaphost"
+    },
+    "accountCapHost": {
+      "value": "caphostacc"
+    },
+    "keyVaultName": {
+      "value": "yourkeyvaultname"
+    },
+    "keyName": {
+        "value": "yourkeyvaultkey"
+    },
+    "keyVersion": {
+        "value": "yourkeyversion"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "aiFoundryName": {
+            "value": "<your-foundry-name>"
+        },
+        "location": {
+            "value": "eastus2"
+        },
+        "keyVaultName": {
+            "value": "<your-keyvault-name>"
+        },
+        "keyName": {
+            "value": "<your-key-name>"
+        },
+        "keyVersion": {
+            "value": "<your-key-version>"
+        }
+    }
+}
