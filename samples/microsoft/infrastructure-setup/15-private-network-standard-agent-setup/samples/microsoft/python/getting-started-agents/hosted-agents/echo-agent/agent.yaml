@@ -1,0 +1,21 @@
+# Unique identifier/name for this agent
+name: echo-agent
+# Brief description of what this agent does
+description: |-
+  This Agent just returns an echo from the user input.
+  It is useful for testing and debugging.
+metadata:
+  # Categorization tags for organizing and discovering agents
+  tags:
+    - example
+    - utility
+    - basic-example
+template:
+  name: echo-agent
+  # The type of agent - "hosted" for HOBO, "container" for COBO
+  kind: hosted
+  protocols:
+    - protocol: responses
+  environment_variables:
+    - name: AZURE_AI_PROJECT_ENDPOINT
+      value: ${AZURE_AI_PROJECT_ENDPOINT}

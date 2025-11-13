@@ -1,0 +1,26 @@
+{
+  "name": "foundry-samples-quickstart",
+  "version": "1.0.0",
+  "description": "JavaScript AI Foundry Quickstart",
+  "homepage": "https://github.com/azure-ai-foundry/foundry-samples#readme",
+  "bugs": {
+    "url": "https://github.com/azure-ai-foundry/foundry-samples/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/azure-ai-foundry/foundry-samples.git"
+  },
+  "license": "MIT",
+  "author": "Dan Wahlin, Julia Muiruri",
+  "type": "module",
+  "main": "src/quickstart.js",
+  "scripts": {
+    "start": "node --no-deprecation src/quickstart.js"
+  },
+  "dependencies": {
+    "@azure/ai-projects": "1.0.0",
+    "@azure/ai-agents": "1.1.0",
+    "@azure/identity": "^4.11.1",
+    "dotenv": "^17.2.1"
+  }
+}

@@ -1,0 +1,19 @@
+name: Microsoft Learn MCP Agent
+description: This Agent can perform web searches and retrieve the latest information from Bing.
+metadata:
+  tags:
+    - example
+    - learning
+  authors:
+    - jeomhove
+template:
+  name: Microsoft Learn MCP Agent
+  kind: hosted
+  environment_variables:
+    - name: AZURE_AI_PROJECT_ENDPOINT
+      value: ${AZURE_AI_PROJECT_ENDPOINT}
+    - name: AZURE_AI_MODEL_DEPLOYMENT_NAME
+      value: "gpt-4o-mini"
+resources:
+  - kind: model
+    id: gpt-4o-mini

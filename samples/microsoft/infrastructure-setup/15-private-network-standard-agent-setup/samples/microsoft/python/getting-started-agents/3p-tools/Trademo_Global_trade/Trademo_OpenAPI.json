@@ -1,0 +1,302 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+      "title": "Trademo Commodity API",
+      "version": "v1",
+      "description": "This tool provides latest duties, VAT and shipments between any two countries"
+    },
+    "servers": [
+      {
+        "url": "http://uat.trademo.com/api/v1",
+        "description": "UAT Environment"
+      }
+    ],
+    "tags": [
+      {
+        "name": "Commodity",
+        "description": "Operations related to commodity trade data"
+      }
+    ],
+    "paths": {
+      "/commodity_api": {
+        "post": {
+          "tags": [
+            "Commodity"
+          ],
+          "summary": "Get Trade related Data",
+          "description": "Retrieves import/export data for a specific commodity (HS Code) between two countries within a given time frame.",
+          "operationId": "getCommodityData",
+          "security": [
+            {
+              "ApiKeyAuth": []
+            }
+          ],
+          "requestBody": {
+            "description": "Specify HS Code, trading partners, and time period.",
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommodityRequest"
+                },
+                "example": {
+                  "hsCode": "220820",
+                  "importingCountry": "united states",
+                  "exportingCountry": "china",
+                  "tradeTimePeriod": {
+                    "fromDate": "2023-04-01",
+                    "toDate": "2025-03-28"
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Successful retrieval of commodity data",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/CommoditySuccessResponse"
+                  },
+                  "example": {
+                    "status": "Success",
+                    "data": [
+                      {
+                        "tradingCountry": "China",
+                        "valueUSD": 5639291,
+                        "weightKg": 115890,
+                        "lastReportedTradeMonth": "2025-02",
+                        "valuePercentageShare": 100.0,
+                        "weightPercentageShare": 100.0,
+                        "importDutyMinimum": "Free",
+                        "importDutyMaximum": "Free",
+                        "vatMin": "Null",
+                        "vatMax": "Null",
+                        "additionalDutyMin": "152.5%",
+                        "additionalDutyMax": "152.5%"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Bad Request - Missing or invalid parameters in the payload",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse400"
+                  },
+                  "example": {
+                    "status": "failure",
+                    "message": "Missing parameter tradeTimePeriod->>fromDate in payload."
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized - Invalid or missing Session ID (API Key)",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse401"
+                  },
+                  "example": {
+                    "status": "FAILED",
+                    "message": "Session ID Not Found"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "CommodityRequest": {
+          "type": "object",
+          "required": [
+            "hsCode",
+            "importingCountry",
+            "exportingCountry",
+            "tradeTimePeriod"
+          ],
+          "properties": {
+            "hsCode": {
+              "type": "string",
+              "description": "SIX digit only Harmonized System (HS) code for the commodity. Sometimes the user will directly provide the HS code, and sometimes it will be derived from the product name.",
+              "example": "220820"
+            },
+            "importingCountry": {
+              "type": "string",
+              "description": "The country importing the commodity. This should be in lowercase and should always be the full name of the countries and not the abberiviation.",
+              "example": "united states",
+              "enum":["afghanistan", "aland islands, finland", "albania", "algeria", "american samoa", "andorra", "angola", "anguilla", "antigua and barbuda", "argentina", "armenia", "aruba", "australia", "austria", "azerbaijan", "bahamas", "bahrain", "bangladesh", "barbados", "belarus", "belgium", "belize", "benin", "bermuda", "bhutan", "bolivia", "bosnia and herzegovina", "botswana", "brazil", "british virgin islands", "brunei", "bulgaria", "burkina faso", "burundi", "cabo verde", "cambodia", "cameroon", "canada", "caribbean netherlands", "cayman islands", "central african republic", "chad", "channel islands", "chile", "china", "christmas island", "cocos islands", "colombia", "comoros", "cook islands", "costa rica", "croatia", "cuba", "curacao", "cyprus", "czech republic", "democratic republic of the congo", "denmark", "djibouti", "dominica", "dominican republic", "east timor", "ecuador", "egypt", "el salvador", "equatorial guinea", "eritrea", "estonia", "eswatini", "ethiopia", "falkland islands", "faroe islands", "fiji", "finland", "france", "french guiana, france", "french polynesia", "gabon", "gambia", "georgia", "germany", "ghana", "gibraltar", "greece", "grenada", "guadeloupe, france", "guam", "guatemala", "guernsey", "guinea", "guinea-bissau", "guyana", "haiti", "honduras", "hong kong", "hungary", "iceland", "india", "indonesia", "iran", "iraq", "ireland", "isle of man", "israel", "italy", "ivory coast", "jamaica", "japan", "jersey", "jordan", "kazakhstan", "kenya", "kiribati", "kosovo", "kuwait", "kyrgyzstan", "laos", "latvia", "lebanon", "lesotho", "liberia", "libya", "liechtenstein", "lithuania", "luxembourg", "macau", "madagascar", "malawi", "malaysia", "maldives", "mali", "malta", "marshall islands", "martinique, france", "mauritania", "mauritius", "mayotte", "mexico", "micronesia", "moldova", "monaco", "mongolia", "montenegro", "montserrat", "morocco", "mozambique", "myanmar", "namibia", "nauru", "nepal", "netherlands", "netherlands antilles", "new caledonia", "new zealand", "nicaragua", "niger", "nigeria", "niue", "norfolk island, australia", "north korea", "north macedonia", "northern mariana islands", "norway", "oman", "pakistan", "palau", "palestine", "panama", "papua new guinea", "paraguay", "peru", "philippines", "pitcairn islands", "poland", "portugal", "puerto rico", "qatar", "republic of the congo", "reunion, france", "romania", "russia", "rwanda", "saint barthelemy", "saint helena", "saint kitts and nevis", "saint lucia", "saint martin", "saint pierre and miquelon", "saint vincent and the grenadines", "samoa", "san marino", "sao tome and principe", "saudi arabia", "senegal", "serbia", "seychelles", "sierra leone", "singapore", "sint maarten", "slovakia", "slovenia", "solomon islands", "somalia", "south africa", "south georgia and the south sandwich islands", "south korea", "south sudan", "spain", "sri lanka", "sudan", "suriname", "svalbard and jan mayen", "sweden", "switzerland", "syria", "taiwan", "tajikistan", "tanzania", "thailand", "tierra del fuego", "togo", "tokelau", "tonga", "trinidad and tobago", "tunisia", "turkey", "turkmenistan", "turks and caicos islands", "tuvalu", "u.s. virgin islands", "uganda", "ukraine", "united arab emirates", "united kingdom", "united states", "uruguay", "uzbekistan", "vanuatu", "vatican city", "venezuela", "vietnam", "wallis and futuna", "yemen", "zambia", "zimbabwe"]
+            },
+            "exportingCountry": {
+              "type": "string",
+              "description": "The country exporting the commodity. This should be in lowercase and should always be the full name of the countries and not the abberiviation.",
+              "example": "china",
+              "enum": ["","afghanistan", "aland islands, finland", "albania", "algeria", "american samoa", "andorra", "angola", "anguilla", "antigua and barbuda", "argentina", "armenia", "aruba", "australia", "austria", "azerbaijan", "bahamas", "bahrain", "bangladesh", "barbados", "belarus", "belgium", "belize", "benin", "bermuda", "bhutan", "bolivia", "bosnia and herzegovina", "botswana", "brazil", "british virgin islands", "brunei", "bulgaria", "burkina faso", "burundi", "cabo verde", "cambodia", "cameroon", "canada", "caribbean netherlands", "cayman islands", "central african republic", "chad", "channel islands", "chile", "china", "christmas island", "cocos islands", "colombia", "comoros", "cook islands", "costa rica", "croatia", "cuba", "curacao", "cyprus", "czech republic", "democratic republic of the congo", "denmark", "djibouti", "dominica", "dominican republic", "east timor", "ecuador", "egypt", "el salvador", "equatorial guinea", "eritrea", "estonia", "eswatini", "ethiopia", "falkland islands", "faroe islands", "fiji", "finland", "france", "french guiana, france", "french polynesia", "gabon", "gambia", "georgia", "germany", "ghana", "gibraltar", "greece", "grenada", "guadeloupe, france", "guam", "guatemala", "guernsey", "guinea", "guinea-bissau", "guyana", "haiti", "honduras", "hong kong", "hungary", "iceland", "india", "indonesia", "iran", "iraq", "ireland", "isle of man", "israel", "italy", "ivory coast", "jamaica", "japan", "jersey", "jordan", "kazakhstan", "kenya", "kiribati", "kosovo", "kuwait", "kyrgyzstan", "laos", "latvia", "lebanon", "lesotho", "liberia", "libya", "liechtenstein", "lithuania", "luxembourg", "macau", "madagascar", "malawi", "malaysia", "maldives", "mali", "malta", "marshall islands", "martinique, france", "mauritania", "mauritius", "mayotte", "mexico", "micronesia", "moldova", "monaco", "mongolia", "montenegro", "montserrat", "morocco", "mozambique", "myanmar", "namibia", "nauru", "nepal", "netherlands", "netherlands antilles", "new caledonia", "new zealand", "nicaragua", "niger", "nigeria", "niue", "norfolk island, australia", "north korea", "north macedonia", "northern mariana islands", "norway", "oman", "pakistan", "palau", "palestine", "panama", "papua new guinea", "paraguay", "peru", "philippines", "pitcairn islands", "poland", "portugal", "puerto rico", "qatar", "republic of the congo", "reunion, france", "romania", "russia", "rwanda", "saint barthelemy", "saint helena", "saint kitts and nevis", "saint lucia", "saint martin", "saint pierre and miquelon", "saint vincent and the grenadines", "samoa", "san marino", "sao tome and principe", "saudi arabia", "senegal", "serbia", "seychelles", "sierra leone", "singapore", "sint maarten", "slovakia", "slovenia", "solomon islands", "somalia", "south africa", "south georgia and the south sandwich islands", "south korea", "south sudan", "spain", "sri lanka", "sudan", "suriname", "svalbard and jan mayen", "sweden", "switzerland", "syria", "taiwan", "tajikistan", "tanzania", "thailand", "tierra del fuego", "togo", "tokelau", "tonga", "trinidad and tobago", "tunisia", "turkey", "turkmenistan", "turks and caicos islands", "tuvalu", "u.s. virgin islands", "uganda", "ukraine", "united arab emirates", "united kingdom", "united states", "uruguay", "uzbekistan", "vanuatu", "vatican city", "venezuela", "vietnam", "wallis and futuna", "yemen", "zambia", "zimbabwe"]
+            },
+            "tradeTimePeriod": {
+              "type": "object",
+              "required": [
+                "fromDate",
+                "toDate"
+              ],
+              "properties": {
+                "fromDate": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "Start date of the trade period (YYYY-MM-DD).",
+                  "example": "2023-04-01"
+                },
+                "toDate": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "End date of the trade period (YYYY-MM-DD).",
+                  "example": "2025-03-28"
+                }
+              }
+            }
+          }
+        },
+        "CommoditySuccessResponse": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["Success"],
+              "example": "Success"
+            },
+            "data": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/CommodityData"
+              }
+            }
+          }
+        },
+        "CommodityData": {
+          "type": "object",
+          "properties": {
+            "tradingCountry": {
+              "type": "string",
+              "description": "The exporting country's name.",
+              "example": "China"
+            },
+            "valueUSD": {
+              "type": "number",
+              "format": "float",
+              "description": "Total trade value in USD.",
+              "example": 5639291
+            },
+            "weightKg": {
+              "type": "number",
+              "format": "float",
+              "description": "Total trade weight in Kilograms.",
+              "example": 115890
+            },
+            "lastReportedTradeMonth": {
+              "type": "string",
+              "description": "The latest month for which trade data is included (YYYY-MM).",
+              "example": "2025-02"
+            },
+            "valuePercentageShare": {
+              "type": "number",
+              "format": "float",
+              "description": "Percentage share of the trade value.",
+              "example": 100.0
+            },
+            "weightPercentageShare": {
+              "type": "number",
+              "format": "float",
+              "description": "Percentage share of the trade weight.",
+              "example": 100.0
+            },
+            "importDutyMinimum": {
+              "type": "string",
+              "description": "Minimum applicable import duty.",
+              "example": "Free"
+            },
+            "importDutyMaximum": {
+              "type": "string",
+              "description": "Maximum applicable import duty.",
+              "example": "Free"
+            },
+            "vatMin": {
+              "type": "string",
+              "description": "Minimum applicable Value Added Tax (VAT).",
+              "example": "Null"
+            },
+            "vatMax": {
+              "type": "string",
+              "description": "Maximum applicable Value Added Tax (VAT).",
+              "example": "Null"
+            },
+            "additionalDutyMin": {
+              "type": "string",
+              "description": "Minimum applicable additional duties.",
+              "example": "152.5%"
+            },
+            "additionalDutyMax": {
+              "type": "string",
+              "description": "Maximum applicable additional duties.",
+              "example": "152.5%"
+            }
+          }
+        },
+        "ErrorResponse400": {
+          "type": "object",
+          "required": [
+            "status",
+            "message"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["failure"],
+              "description": "Indicates a failed request due to client error.",
+              "example": "failure"
+            },
+            "message": {
+              "type": "string",
+              "description": "Details about the error.",
+              "example": "Missing parameter tradeTimePeriod->>fromDate in payload."
+            }
+          }
+        },
+        "ErrorResponse401": {
+          "type": "object",
+          "required": [
+            "status",
+            "message"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["FAILED"],
+              "description": "Indicates a failed request due to authentication error.",
+              "example": "FAILED"
+            },
+            "message": {
+              "type": "string",
+              "description": "Details about the authentication error.",
+              "example": "Session ID Not Found"
+            }
+          }
+        }
+      },
+      "securitySchemes": {
+        "ApiKeyAuth": {
+          "type": "apiKey",
+          "in": "header",
+          "name": "sessionid",
+          "description": "API Key (referred to as sessionid) passed in the header for authentication."
+        }
+      }
+    }
+  }
