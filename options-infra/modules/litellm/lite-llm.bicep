@@ -14,7 +14,8 @@ param virtualNetworkResourceId string
 param keyVaultDnsZoneResourceId string
 param postgressDnsZoneResourceId string
 
-param liteLmmConfigYaml string
+param liteLlmConfigYaml string
+param litlLlmPublicFqdn string?
 
 var identityResourceParts = split(identityResourceId, '/')
 var identityResourceName = last(identityResourceParts)
@@ -26,7 +27,7 @@ resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@
   scope: resourceGroup(identityResourceSubId, identityResourceRgName)
 }
 
-var litellmmasterkey = take(uniqueString(resourceToken, 'litellm'), 6)
+var litelLlmasterkey = take(uniqueString(resourceToken, 'litellm'), 6)
 
 module postgressDb '../db/postgress.bicep' = {
   name: 'postgress-db-deployment'
@@ -61,7 +62,7 @@ module keyVault '../kv/key-vault.bicep' = {
     name: 'kv-${resourceToken}'
     secrets: [
       { name: 'openaiapikey', value: openAiApiKey }
-      { name: 'litellmmasterkey', value: litellmmasterkey }
+      { name: 'litelLlmasterkey', value: litelLlmasterkey }
     ]
     userAssignedManagedIdentityPrincipalId: userAssignedIdentity.properties.principalId
     principalId: null
@@ -183,7 +184,7 @@ module liteLlmApp '../aca/container-app.bicep' = {
         {
           secret: true
           name: 'LITELLM_MASTER_KEY'
-          keyVaultSecretName: 'litellmmasterkey'
+          keyVaultSecretName: 'litelLlmasterkey'
         }
         {
           secret: true
@@ -193,6 +194,10 @@ module liteLlmApp '../aca/container-app.bicep' = {
         {
           name: 'AZURE_API_BASE'
           value: openAiApiBase
+        }
+        {
+          name: 'PROXY_BASE_URL'
+          value: litlLlmPublicFqdn ?? 'https://aca-litellm-${resourceToken}.${managedEnvironment.outputs.AZURE_RESOURCE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}'
         }
         {
           secret: true
@@ -238,7 +243,7 @@ module liteLlmApp '../aca/container-app.bicep' = {
         env: [
           {
             name: 'CONFIG_YAML'
-            value: liteLmmConfigYaml
+            value: liteLlmConfigYaml
           }
         ]
         volumeMounts: [
@@ -286,7 +291,7 @@ module liteLlmConnection '../ai/connection-litellm-gateway.bicep' = {
   params: {
     aiFoundryName: aiFoundryName
     connectionName: 'modelgateway-litellm-${resourceToken}'
-    apiKey: litellmmasterkey
+    apiKey: litelLlmasterkey
     isSharedToAll: true
     gatewayName: 'litellm'
     targetUrl: liteLlmApp.outputs.AZURE_RESOURCE_CONTAINER_APP_FQDN

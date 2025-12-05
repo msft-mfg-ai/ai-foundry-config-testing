@@ -1,19 +1,10 @@
 param name string
 param location string = resourceGroup().location
 param applicationGatewaySubnetId string
+param publicIpResourceId string
 
 param applicationFqdn string
 param acaName string = 'aca'
-
-module publicIpAddress 'br/public:avm/res/network/public-ip-address:0.9.1' = {
-  params: {
-    // Required parameters
-    name: '${name}-public-ip'
-    // Non-required parameters
-    location: location
-    availabilityZones: []
-  }
-}
 
 var cleanFqdn = replace(replace(applicationFqdn, 'https://', ''), 'http://', '')
 
@@ -56,7 +47,7 @@ module applicationGateway 'br/public:avm/res/network/application-gateway:0.7.2' 
         properties: {
           privateIPAllocationMethod: 'Dynamic'
           publicIPAddress: {
-            id: publicIpAddress.outputs.resourceId
+            id: publicIpResourceId
           }
         }
       }

@@ -148,7 +148,8 @@ module liteLlm '../modules/litellm/lite-llm.bicep' = {
     openAiApiKey: openAiApiKey
     openAiApiBase: openAiApiBase
     aiFoundryName: foundry.outputs.name
-    liteLmmConfigYaml: '''
+    litlLlmPublicFqdn: 'http://${publicIpAddress.outputs.ipAddress}'
+    liteLlmConfigYaml: '''
 model_list:
   - model_name: azure-gpt-4.1-mini
     litellm_params:
@@ -175,6 +176,16 @@ model_list:
   }
 }
 
+module publicIpAddress 'br/public:avm/res/network/public-ip-address:0.9.1' = {
+  params: {
+    // Required parameters
+    name: 'app-gateway-${resourceToken}-public-ip'
+    // Non-required parameters
+    location: location
+    availabilityZones: []
+  }
+}
+
 module acaAppGateway '../modules/appgtw/application-gateway.bicep' = {
   name: 'aca-app-gateway-deployment-${resourceToken}'
   params: {
@@ -183,6 +194,7 @@ module acaAppGateway '../modules/appgtw/application-gateway.bicep' = {
     applicationFqdn: liteLlm.outputs.liteLlmAcaFqdn
     applicationGatewaySubnetId: vnet.outputs.appGwSubnetId
     acaName: 'aca${resourceToken}'
+    publicIpResourceId: publicIpAddress.outputs.resourceId
   }
 }
 
