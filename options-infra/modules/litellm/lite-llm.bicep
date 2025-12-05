@@ -27,7 +27,7 @@ resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@
   scope: resourceGroup(identityResourceSubId, identityResourceRgName)
 }
 
-var litelLlmasterkey = take(uniqueString(resourceToken, 'litellm'), 6)
+var litelllmasterkey = take(uniqueString(resourceToken, 'litellm'), 6)
 
 module postgressDb '../db/postgress.bicep' = {
   name: 'postgress-db-deployment'
@@ -62,7 +62,7 @@ module keyVault '../kv/key-vault.bicep' = {
     name: 'kv-${resourceToken}'
     secrets: [
       { name: 'openaiapikey', value: openAiApiKey }
-      { name: 'litelLlmasterkey', value: litelLlmasterkey }
+      { name: 'litelllmasterkey', value: litelllmasterkey }
     ]
     userAssignedManagedIdentityPrincipalId: userAssignedIdentity.properties.principalId
     principalId: null
@@ -184,7 +184,7 @@ module liteLlmApp '../aca/container-app.bicep' = {
         {
           secret: true
           name: 'LITELLM_MASTER_KEY'
-          keyVaultSecretName: 'litelLlmasterkey'
+          keyVaultSecretName: 'litelllmasterkey'
         }
         {
           secret: true
@@ -291,7 +291,7 @@ module liteLlmConnection '../ai/connection-litellm-gateway.bicep' = {
   params: {
     aiFoundryName: aiFoundryName
     connectionName: 'modelgateway-litellm-${resourceToken}'
-    apiKey: litelLlmasterkey
+    apiKey: litelllmasterkey
     isSharedToAll: true
     gatewayName: 'litellm'
     targetUrl: liteLlmApp.outputs.AZURE_RESOURCE_CONTAINER_APP_FQDN
