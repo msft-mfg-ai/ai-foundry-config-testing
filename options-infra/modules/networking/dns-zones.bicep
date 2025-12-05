@@ -18,7 +18,7 @@ var cognitiveServicesDnsZoneName = 'privatelink.cognitiveservices.azure.com'
 var aiSearchDnsZoneName = 'privatelink.search.windows.net'
 var storageDnsZoneName = 'privatelink.blob.${environment().suffixes.storage}'
 var cosmosDBDnsZoneName = 'privatelink.documents.azure.com'
-var keyVaultDnsZoneName = 'privatelink.keyvault.azure.com'
+var keyVaultDnsZoneName = 'privatelink.vaultcore.azure.net'
 
 // ---- DNS Zone Resources and References ----
 resource aiServicesPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
@@ -154,35 +154,42 @@ output DNSZones types.DnsZonesType = {
     name: aiServicesDnsZoneName
     resourceGroupName: resourceGroup().name
     subscriptionId: subscription().subscriptionId
+    resourceId: aiServicesPrivateDnsZone.id
   }
   'privatelink.openai.azure.com': {
     name: openAiDnsZoneName
     resourceGroupName: resourceGroup().name
     subscriptionId: subscription().subscriptionId
+    resourceId: openAiPrivateDnsZone.id
   }
   'privatelink.cognitiveservices.azure.com': {
     name: cognitiveServicesDnsZoneName
     resourceGroupName: resourceGroup().name
     subscriptionId: subscription().subscriptionId
+    resourceId: cognitiveServicesPrivateDnsZone.id
   }
   'privatelink.search.windows.net': {
     name: aiSearchDnsZoneName
     resourceGroupName: resourceGroup().name
     subscriptionId: subscription().subscriptionId
+    resourceId: aiSearchPrivateDnsZone.id
   }
   'privatelink.blob.${environment().suffixes.storage}': {
     name: storageDnsZoneName
     resourceGroupName: resourceGroup().name
     subscriptionId: subscription().subscriptionId
+    resourceId: storagePrivateDnsZone.id
   }
   'privatelink.documents.azure.com': {
     name: cosmosDBDnsZoneName
     resourceGroupName: resourceGroup().name
     subscriptionId: subscription().subscriptionId
+    resourceId: cosmosDBPrivateDnsZone.id
   }
-  'privatelink.keyvault.azure.com': {
+  'privatelink.vaultcore.azure.net': {
     name: keyVaultDnsZoneName
     resourceGroupName: resourceGroup().name
     subscriptionId: subscription().subscriptionId
+    resourceId: keyVaultPrivateDnsZone.id
   }
 }

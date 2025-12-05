@@ -190,6 +190,7 @@ var cosmosDBDnsZoneName = 'privatelink.documents.azure.com'
 var aiServicesDnsZoneName = 'privatelink.services.ai.azure.com'
 var openAiDnsZoneName = 'privatelink.openai.azure.com'
 var cognitiveServicesDnsZoneName = 'privatelink.cognitiveservices.azure.com'
+var keyVaultDnsZoneName = 'privatelink.vaultcore.azure.net'
 
 // ---- DNS Zone Resource Group lookups ----
 var aiSearchDnsZone = existingDnsZones[?aiSearchDnsZoneName]
@@ -198,6 +199,7 @@ var cosmosDBDnsZone = existingDnsZones[?cosmosDBDnsZoneName]
 var aiServicesDnsZone = existingDnsZones[?aiServicesDnsZoneName]
 var openAiDnsZone = existingDnsZones[?openAiDnsZoneName]
 var cognitiveServicesDnsZone = existingDnsZones[?cognitiveServicesDnsZoneName]
+var keyVaultDnsZone = existingDnsZones[?keyVaultDnsZoneName]
 
 // ---- DNS Zone Resources and References ----
 resource aiServicesPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (empty(aiServicesDnsZone)) {
@@ -280,6 +282,19 @@ resource existingCosmosDBPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-
 //creating condition if user pass existing dns zones or not
 var cosmosDBDnsZoneId = empty(cosmosDBDnsZone) ? cosmosDBPrivateDnsZone.id : existingCosmosDBPrivateDnsZone.id
 
+// Reference existing private DNS zone if provided
+resource keyVaultPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (empty(keyVaultDnsZone)) {
+  name: keyVaultDnsZoneName
+  location: 'global'
+}
+
+resource existingKeyVaultPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = if (!empty(keyVaultDnsZone)) {
+  name: keyVaultDnsZoneName
+  scope: resourceGroup(keyVaultDnsZone!.subscriptionId, keyVaultDnsZone!.resourceGroupName)
+}
+//creating condition if user pass existing dns zones or not
+var keyVaultDnsZoneId = empty(keyVaultDnsZone) ? keyVaultPrivateDnsZone.id : existingKeyVaultPrivateDnsZone.id
+
 // ---- DNS VNet Links ----
 resource aiServicesLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (empty(aiServicesDnsZone)) {
   parent: aiServicesPrivateDnsZone
@@ -337,6 +352,16 @@ resource cosmosDBLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@202
   }
 }
 
+resource keyVaultLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (empty(keyVaultDnsZone)) {
+  parent: keyVaultPrivateDnsZone
+  location: 'global'
+  name: 'keyVault-${suffix}-link'
+  properties: {
+    virtualNetwork: { id: vnet.id }
+    registrationEnabled: false
+  }
+}
+
 // ---- DNS Zone Groups ----
 
 resource aiSearchDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = {
@@ -376,6 +401,7 @@ resource cosmosDBDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGrou
   ]
 }
 
+
 output aiServicesDnsZoneId string = aiServicesDnsZoneId
 output openAiDnsZoneId string = openAiDnsZoneId
 output cognitiveServicesDnsZoneId string = cognitiveServicesDnsZoneId
@@ -384,31 +410,43 @@ var zones types.DnsZonesType = {
     name: aiServicesDnsZoneName
     resourceGroupName: empty(aiServicesDnsZone) ? resourceGroup().name : aiServicesDnsZone!.resourceGroupName
     subscriptionId: empty(aiServicesDnsZone) ? subscription().subscriptionId : aiServicesDnsZone!.subscriptionId
+    resourceId: aiServicesDnsZoneId
   }
   'privatelink.openai.azure.com': {
     name: openAiDnsZoneName
     resourceGroupName: empty(openAiDnsZone) ? resourceGroup().name : openAiDnsZone!.resourceGroupName
     subscriptionId: empty(openAiDnsZone) ? subscription().subscriptionId : openAiDnsZone!.subscriptionId
+    resourceId: openAiDnsZoneId
   }
   'privatelink.cognitiveservices.azure.com': {
     name: cognitiveServicesDnsZoneName
     resourceGroupName: empty(cognitiveServicesDnsZone) ? resourceGroup().name : cognitiveServicesDnsZone!.resourceGroupName
     subscriptionId: empty(cognitiveServicesDnsZone) ? subscription().subscriptionId : cognitiveServicesDnsZone!.subscriptionId
+    resourceId: cognitiveServicesDnsZoneId
   }
   'privatelink.search.windows.net': {
     name: aiSearchDnsZoneName
     resourceGroupName: empty(aiSearchDnsZone) ? resourceGroup().name : aiSearchDnsZone!.resourceGroupName
     subscriptionId: empty(aiSearchDnsZone) ? subscription().subscriptionId : aiSearchDnsZone!.subscriptionId
+    resourceId: aiSearchDnsZoneId
   }
   'privatelink.blob.${environment().suffixes.storage}': {
     name: storageDnsZoneName
     resourceGroupName: empty(storageDnsZone) ? resourceGroup().name : storageDnsZone!.resourceGroupName
     subscriptionId: empty(storageDnsZone) ? subscription().subscriptionId : storageDnsZone!.subscriptionId
+    resourceId: storageDnsZoneId
   }
   'privatelink.documents.azure.com': {
     name: cosmosDBDnsZoneName
     resourceGroupName: empty(cosmosDBDnsZone) ? resourceGroup().name : cosmosDBDnsZone!.resourceGroupName
     subscriptionId: empty(cosmosDBDnsZone) ? subscription().subscriptionId : cosmosDBDnsZone!.subscriptionId
+    resourceId: cosmosDBDnsZoneId
+  }
+  'privatelink.vaultcore.azure.net': {
+    name: 'privatelink.vaultcore.azure.net'
+    resourceGroupName: empty(keyVaultDnsZone) ? resourceGroup().name : keyVaultDnsZone!.resourceGroupName
+    subscriptionId: empty(keyVaultDnsZone) ? subscription().subscriptionId : keyVaultDnsZone!.subscriptionId
+    resourceId: keyVaultDnsZoneId
   }
 }
 

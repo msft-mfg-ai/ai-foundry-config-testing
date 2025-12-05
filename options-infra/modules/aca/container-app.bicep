@@ -23,6 +23,7 @@ param keyVaultName string? // New parameter for Key Vault name
 param initContainersTemplate array = []
 param authentication object = {}
 param managedIdentityClientIdSecretName string = ''
+param containerArgs string[] = []
 
 var appSettingsArray = filter(array(definition.settings), i => i.name != '')
 var secrets = map(filter(appSettingsArray, i => i.?secret != null), i => {
@@ -67,7 +68,7 @@ var additionalVolumes = union(
   volumes
 )
 
-module containerApp 'br/public:avm/res/app/container-app:0.17.0' = {
+module containerApp 'br/public:avm/res/app/container-app:0.19.0' = {
   name: 'containerAppDeployment-${name}'
   params: {
     name: name
@@ -94,6 +95,7 @@ module containerApp 'br/public:avm/res/app/container-app:0.17.0' = {
           cpu: json(cpu)
           memory: memory
         }
+        args: containerArgs
         volumeMounts: additionalVolumeMounts
         env: union(
           [

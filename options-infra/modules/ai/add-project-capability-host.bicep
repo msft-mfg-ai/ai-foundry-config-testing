@@ -32,7 +32,8 @@ var settingsOptions = [
 var propertiesObject = [for (item, key) in settingsOptions: (!empty(item.value) ? { '${item.key}': item.value }: {})]
 var properties = reduce(propertiesObject, {}, (cur, next) => union(cur, next))
 
-resource projectCapabilityHostStandardNoConnections 'Microsoft.CognitiveServices/accounts/projects/capabilityHosts@2025-04-01-preview' = {
+@onlyIfNotExists()
+resource projectCapabilityHostStandard 'Microsoft.CognitiveServices/accounts/projects/capabilityHosts@2025-10-01-preview' = {
   name: projectCapHost
   parent: project
   properties: properties

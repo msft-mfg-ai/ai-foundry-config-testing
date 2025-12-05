@@ -19,7 +19,7 @@ resource foundry 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' exist
 }
 
 module aiProject './ai-project.bicep' = {
-  name: 'ai-project-${projectId}'
+  name: 'deployment-for-ai-project-${projectId}'
   params: {
     foundry_name: foundryName
     location: location

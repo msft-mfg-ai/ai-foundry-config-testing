@@ -25,6 +25,9 @@ param agentSubnetName string = 'agent-subnet'
 @description('The name of Hub subnet')
 param peSubnetName string = 'pe-subnet'
 
+@description('The name of Hub subnet')
+param appGwSubnetName string = 'appgw-subnet'
+
 @description('Address space for the VNet')
 param vnetAddressPrefix string = ''
 
@@ -36,10 +39,14 @@ param customDNS string = ''
 
 @description('Address prefix for the private endpoint subnet')
 param peSubnetPrefix string = ''
+@description('Address prefix for the application gateway subnet')
+param appGwSubnetPrefix string = ''
+
 var defaultVnetAddressPrefix = '192.168.0.0/16'
 var vnetAddress = empty(vnetAddressPrefix) ? defaultVnetAddressPrefix : vnetAddressPrefix
 var agentSubnet = empty(agentSubnetPrefix) ? cidrSubnet(vnetAddress, 24, 0) : agentSubnetPrefix
 var peSubnet = empty(peSubnetPrefix) ? cidrSubnet(vnetAddress, 24, 1) : peSubnetPrefix
+var appGwSubnet = empty(appGwSubnetPrefix) ? cidrSubnet(vnetAddress, 24, extraAgentSubnets + 3) : appGwSubnetPrefix
 
 // Temporary
 var laSubnet = empty(peSubnetPrefix) ? cidrSubnet(vnetAddress, 24, 2) : peSubnetPrefix
@@ -70,6 +77,75 @@ module networkSecurityGroup 'br/public:avm/res/network/network-security-group:0.
   }
 }
 
+module appGwSecurityGroup 'br/public:avm/res/network/network-security-group:0.5.1' = {
+  name: 'appGwSecurityGroupDeployment'
+  params: {
+    name: 'appgw-nsg'
+    securityRules: [
+      // Required: Allow Application Gateway V2 infrastructure communication
+      {
+        name: 'AllowGatewayManagerInbound'
+        properties: {
+          priority: 100
+          direction: 'Inbound'
+          access: 'Allow'
+          protocol: 'Tcp'
+          sourceAddressPrefix: 'GatewayManager'
+          sourcePortRange: '*'
+          destinationAddressPrefix: '*'
+          destinationPortRange: '65200-65535'
+          description: 'Required for Application Gateway V2 infrastructure communication'
+        }
+      }
+      // Required: Allow Azure Load Balancer health probes
+      {
+        name: 'AllowAzureLoadBalancerInbound'
+        properties: {
+          priority: 110
+          direction: 'Inbound'
+          access: 'Allow'
+          protocol: '*'
+          sourceAddressPrefix: 'AzureLoadBalancer'
+          sourcePortRange: '*'
+          destinationAddressPrefix: '*'
+          destinationPortRange: '*'
+          description: 'Required for Azure Load Balancer health probes'
+        }
+      }
+      // Allow HTTPS traffic from internet (for public-facing App Gateway)
+      {
+        name: 'AllowHttpsInbound'
+        properties: {
+          priority: 200
+          direction: 'Inbound'
+          access: 'Allow'
+          protocol: 'Tcp'
+          sourceAddressPrefix: 'Internet'
+          sourcePortRange: '*'
+          destinationAddressPrefix: '*'
+          destinationPortRange: '443'
+          description: 'Allow HTTPS traffic'
+        }
+      }
+      // Allow HTTP traffic (optional - for redirect to HTTPS)
+      {
+        name: 'AllowHttpInbound'
+        properties: {
+          priority: 210
+          direction: 'Inbound'
+          access: 'Allow'
+          protocol: 'Tcp'
+          sourceAddressPrefix: 'Internet'
+          sourcePortRange: '*'
+          destinationAddressPrefix: '*'
+          destinationPortRange: '80'
+          description: 'Allow HTTP traffic (for HTTPS redirect)'
+        }
+      }
+    ]
+  }
+}
+
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   name: vnetName
   location: location
@@ -79,11 +155,13 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
         vnetAddress
       ]
     }
-    dhcpOptions: empty(customDNS) ? null : {
-      dnsServers: [
-        customDNS
-      ]
-    }
+    dhcpOptions: empty(customDNS)
+      ? null
+      : {
+          dnsServers: [
+            customDNS
+          ]
+        }
     subnets: union(extraAgentSubnetObjects, [
       {
         name: agentSubnetName
@@ -112,6 +190,15 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
         }
       }
       {
+        name: appGwSubnetName
+        properties: {
+          addressPrefix: appGwSubnet
+          networkSecurityGroup: {
+            id: appGwSecurityGroup.outputs.resourceId
+          }
+        }
+      }
+      {
         name: laSubnetName
         properties: {
           addressPrefix: laSubnet
@@ -134,8 +221,10 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
 // Output variables
 output peSubnetName string = peSubnetName
 output agentSubnetName string = agentSubnetName
+output appGwSubnetName string = appGwSubnetName
 output agentSubnetId string = '${virtualNetwork.id}/subnets/${agentSubnetName}'
 output peSubnetId string = '${virtualNetwork.id}/subnets/${peSubnetName}'
+output appGwSubnetId string = '${virtualNetwork.id}/subnets/${appGwSubnetName}'
 output virtualNetworkName string = virtualNetwork.name
 output virtualNetworkId string = virtualNetwork.id
 output virtualNetworkResourceGroup string = resourceGroup().name
