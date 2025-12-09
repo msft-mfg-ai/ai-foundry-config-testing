@@ -22,6 +22,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup SSH key for Bicep validation
+        run: |
+          # Create dummy SSH key for Bicep files that use loadTextContent for SSH keys
+          mkdir -p ~/.ssh
+          echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDummyKeyForCIValidation ci@github-actions" > ~/.ssh/id_rsa.pub
+          echo "✅ Created dummy SSH public key for CI validation"
+
       - name: Install Bicep CLI
         run: |
           # Download and install Bicep CLI directly
