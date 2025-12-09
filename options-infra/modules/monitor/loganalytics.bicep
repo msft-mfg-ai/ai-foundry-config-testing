@@ -52,6 +52,7 @@ resource newLogAnalyticsResource 'Microsoft.OperationalInsights/workspaces@2023-
     retentionInDays: 30
     features: {
       searchVersion: 1
+      disableLocalAuth: false
     }
     sku: {
       name: 'PerGB2018'

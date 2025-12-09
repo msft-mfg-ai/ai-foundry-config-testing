@@ -9,17 +9,26 @@ param appInsightsConnectionString string
 // var workloadProfileName = 'default'
 var workloadProfileName = 'Consumption'
 
+var logAnalyticsWorkspaceParts = split(logAnalyticsWorkspaceResourceId, '/')
+var logAnalyticsWorkspaceName = last(logAnalyticsWorkspaceParts)
+var logAnalyticsResourceGroupName = logAnalyticsWorkspaceParts[length(logAnalyticsWorkspaceParts) - 5]
+var logAnalyticsWorkspaceSubscriptionId = logAnalyticsWorkspaceParts[2]
+
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2025-07-01' existing = {
+  name: logAnalyticsWorkspaceName
+  scope: resourceGroup(logAnalyticsWorkspaceSubscriptionId, logAnalyticsResourceGroupName)
+}
+
 // Container apps environment
-module containerAppsEnvironment 'br/public:avm/res/app/managed-environment:0.10.0' = {
+module containerAppsEnvironment 'br/public:avm/res/app/managed-environment:0.11.3' = {
   name: 'container-apps-environment'
   params: {
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
     name: name
     location: location
     zoneRedundant: false
     storages: storages
     publicNetworkAccess: publicNetworkAccess
-    infrastructureSubnetId: infrastructureSubnetId
+    infrastructureSubnetResourceId: infrastructureSubnetId
     workloadProfiles: [
       {
         name: 'Consumption'
@@ -28,6 +37,13 @@ module containerAppsEnvironment 'br/public:avm/res/app/managed-environment:0.10.
         // maximumCount: 1
       }
     ]
+    appLogsConfiguration: {
+      destination: 'log-analytics'
+      logAnalyticsConfiguration: {
+        customerId: logAnalyticsWorkspace.properties.customerId
+        sharedKey: logAnalyticsWorkspace.listKeys().primarySharedKey
+      }
+    }
     appInsightsConnectionString: appInsightsConnectionString
     openTelemetryConfiguration:{
       tracesConfiguration: {
@@ -44,3 +60,4 @@ output AZURE_RESOURCE_CONTAINER_APPS_ENVIRONMENT_ID string = containerAppsEnviro
 output AZURE_RESOURCE_CONTAINER_APPS_WORKLOAD_PROFILE_NAME string = workloadProfileName
 output AZURE_RESOURCE_CONTAINER_APPS_WORKLOAD_PROFILE_CONSUMPTION string = 'Consumption'
 output AZURE_RESOURCE_CONTAINER_APPS_ENVIRONMENT_NAME string = containerAppsEnvironment.outputs.name
+output AZURE_RESOURCE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = containerAppsEnvironment.outputs.defaultDomain

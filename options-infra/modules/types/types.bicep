@@ -36,7 +36,7 @@ type DnsZonesType = {
   #disable-next-line no-hardcoded-env-urls
   'privatelink.blob.core.windows.net': DNSZoneType?
   'privatelink.documents.azure.com': DNSZoneType?
-  'privatelink.keyvault.azure.com': DNSZoneType?
+  'privatelink.vaultcore.azure.net': DNSZoneType?
 }
 
 @export()
@@ -47,7 +47,7 @@ var DefaultDNSZones = {
   'privatelink.search.windows.net': null
   'privatelink.blob.${environment().suffixes.storage}': null
   'privatelink.documents.azure.com': null
-  'privatelink.keyvault.azure.com': null
+  'privatelink.vaultcore.azure.net': null
 }
 
 @export()
@@ -55,6 +55,7 @@ var emptyDnsZone DNSZoneType = {
   name: ''
   resourceGroupName: ''
   subscriptionId: ''
+  resourceId: ''
 }
 
 type DNSZoneType = {
@@ -66,6 +67,9 @@ type DNSZoneType = {
 
   @description('The subscription ID where the private DNS zone is deployed.')
   subscriptionId: string
+
+  @description('The resource ID of the private DNS zone.')
+  resourceId: string
 }
 
 @export()

@@ -1,2 +1,0 @@
-[pytest11]
-changed_samples = pytest_changed_samples.plugin

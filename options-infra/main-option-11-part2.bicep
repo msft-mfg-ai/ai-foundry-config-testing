@@ -23,36 +23,43 @@ var existingDnsZonesConfig types.DnsZonesType = {
     name: 'privatelink.services.ai.azure.com'
     resourceGroupName: dnsResourceGroupName
     subscriptionId: dnsSubscriptionId
+    resourceId: resourceId(dnsSubscriptionId, dnsResourceGroupName, 'Microsoft.Network/privateDnsZones', 'privatelink.services.ai.azure.com')
   }
   'privatelink.openai.azure.com': {
     name: 'privatelink.openai.azure.com'
     resourceGroupName: dnsResourceGroupName
     subscriptionId: dnsSubscriptionId
+    resourceId: resourceId(dnsSubscriptionId, dnsResourceGroupName, 'Microsoft.Network/privateDnsZones', 'privatelink.openai.azure.com')
   }
   'privatelink.cognitiveservices.azure.com': {
     name: 'privatelink.cognitiveservices.azure.com'
     resourceGroupName: dnsResourceGroupName
     subscriptionId: dnsSubscriptionId
+    resourceId: resourceId(dnsSubscriptionId, dnsResourceGroupName, 'Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')
   }
   'privatelink.search.windows.net': {
     name: 'privatelink.search.windows.net'
     resourceGroupName: dnsResourceGroupName
     subscriptionId: dnsSubscriptionId
+    resourceId: resourceId(dnsSubscriptionId, dnsResourceGroupName, 'Microsoft.Network/privateDnsZones', 'privatelink.search.windows.net')
   }
   'privatelink.blob.${environment().suffixes.storage}': {
     name: 'privatelink.blob.${environment().suffixes.storage}'
     resourceGroupName: dnsResourceGroupName
     subscriptionId: dnsSubscriptionId
+    resourceId: resourceId(dnsSubscriptionId, dnsResourceGroupName, 'Microsoft.Network/privateDnsZones', 'privatelink.blob.${environment().suffixes.storage}')
   }
   'privatelink.documents.azure.com': {
     name: 'privatelink.documents.azure.com'
     resourceGroupName: dnsResourceGroupName
     subscriptionId: dnsSubscriptionId
+    resourceId: resourceId(dnsSubscriptionId, dnsResourceGroupName, 'Microsoft.Network/privateDnsZones', 'privatelink.documents.azure.com')
   }
-  'privatelink.keyvault.azure.com': {
-    name: 'privatelink.keyvault.azure.com'
+  'privatelink.vaultcore.azure.net': {
+    name: 'privatelink.vaultcore.azure.net'
     resourceGroupName: dnsResourceGroupName
     subscriptionId: dnsSubscriptionId
+    resourceId: resourceId(dnsSubscriptionId, dnsResourceGroupName, 'Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')
   }
 }
 

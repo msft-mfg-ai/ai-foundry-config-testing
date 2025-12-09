@@ -1,0 +1,52 @@
+name: Reusable Bicep Validation
+
+on:
+  workflow_call:
+    inputs:
+      bicep-file:
+        description: 'Path to the Bicep file to validate'
+        required: true
+        type: string
+      working-directory:
+        description: 'Working directory for the validation'
+        required: false
+        type: string
+        default: '.'
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key for Bicep validation
+        run: |
+          # Create dummy SSH key for Bicep files that use loadTextContent for SSH keys
+          mkdir -p ~/.ssh
+          echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDummyKeyForCIValidation ci@github-actions" > ~/.ssh/id_rsa.pub
+          echo "✅ Created dummy SSH public key for CI validation"
+
+      - name: Install Bicep CLI
+        run: |
+          # Download and install Bicep CLI directly
+          curl -Lo bicep https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64
+          chmod +x ./bicep
+          sudo mv ./bicep /usr/local/bin/bicep
+          bicep --version
+
+      - name: Bicep Build
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          echo "🔍 Building: ${{ inputs.bicep-file }}"
+          bicep build "${{ inputs.bicep-file }}"
+          echo "✅ Build successful"
+
+      - name: Bicep Lint
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          echo "🔎 Linting: ${{ inputs.bicep-file }}"
+          bicep lint "${{ inputs.bicep-file }}"
+          echo "✅ Lint successful"

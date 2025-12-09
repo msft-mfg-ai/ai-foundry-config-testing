@@ -38,7 +38,7 @@ param existingStorageId string
 
 // ============== Monitoring ==============
 @description('Name of the existing Application Insights')
-param existingApplicationInsightsName string
+param existingApplicationInsightsResourceId string
 
 var resourceToken = toLower(uniqueString(resourceGroup().id))
 
@@ -77,7 +77,7 @@ module foundry './modules/ai/ai-foundry.bicep' = {
   params: {
     managedIdentityId: '' // Use System Assigned Identity
     name: 'ai-foundry-${resourceToken}'
-    appInsightsName: existingApplicationInsightsName
+    appInsightsId: existingApplicationInsightsResourceId
     publicNetworkAccess: 'Disabled'  // ✅ Changed to Disabled for security
     agentSubnetId: existingFoundryAgentSubnetId
     deployments: []  // ✅ Empty - using existing Azure OpenAI resource
