@@ -22,24 +22,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Azure CLI
-        uses: azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az bicep install
-            az bicep version
+      - name: Install Bicep CLI
+        run: |
+          # Download and install Bicep CLI directly
+          curl -Lo bicep https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64
+          chmod +x ./bicep
+          sudo mv ./bicep /usr/local/bin/bicep
+          bicep --version
 
       - name: Bicep Build
         working-directory: ${{ inputs.working-directory }}
         run: |
           echo "🔍 Building: ${{ inputs.bicep-file }}"
-          az bicep build --file "${{ inputs.bicep-file }}"
+          bicep build "${{ inputs.bicep-file }}"
           echo "✅ Build successful"
 
       - name: Bicep Lint
         working-directory: ${{ inputs.working-directory }}
         run: |
           echo "🔎 Linting: ${{ inputs.bicep-file }}"
-          az bicep lint --file "${{ inputs.bicep-file }}"
+          bicep lint "${{ inputs.bicep-file }}"
           echo "✅ Lint successful"
