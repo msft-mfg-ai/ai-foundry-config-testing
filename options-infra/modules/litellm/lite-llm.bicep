@@ -15,6 +15,7 @@ param keyVaultDnsZoneResourceId string
 param postgressDnsZoneResourceId string
 
 param liteLlmConfigYaml string
+param modelsStatic array = []
 param litlLlmPublicFqdn string?
 
 var identityResourceParts = split(identityResourceId, '/')
@@ -213,7 +214,7 @@ module liteLlmApp '../aca/container-app.bicep' = {
       '4000'
       // '--num_workers'
       // '2'
-      '--detailed_debug'
+      // '--detailed_debug'
     ]
     volumes: [
       {
@@ -259,8 +260,8 @@ module liteLlmApp '../aca/container-app.bicep' = {
     userAssignedManagedIdentityClientId: userAssignedIdentity.properties.clientId
     userAssignedManagedIdentityResourceId: userAssignedIdentity.id
     ingressExternal: true
-    cpu: '0.25'
-    memory: '0.5Gi'
+    cpu: '1.0'
+    memory: '2.0Gi'
     scaleMaxReplicas: 1
     scaleMinReplicas: 1
     containerAppsEnvironmentResourceId: managedEnvironment.outputs.AZURE_RESOURCE_CONTAINER_APPS_ENVIRONMENT_ID
@@ -286,8 +287,8 @@ module liteLlmApp '../aca/container-app.bicep' = {
   }
 }
 
-module liteLlmConnection '../ai/connection-litellm-gateway.bicep' = {
-  name: 'lite-llm-connection'
+module liteLlmConnectionDynamic '../ai/connection-litellm-gateway.bicep' = {
+  name: 'lite-llm-connection-dynamic'
   params: {
     aiFoundryName: aiFoundryName
     connectionName: 'modelgateway-litellm-${resourceToken}'
@@ -295,6 +296,19 @@ module liteLlmConnection '../ai/connection-litellm-gateway.bicep' = {
     isSharedToAll: true
     gatewayName: 'litellm'
     targetUrl: liteLlmApp.outputs.AZURE_RESOURCE_CONTAINER_APP_FQDN
+  }
+}
+
+module liteLlmConnectionStatic '../ai/connection-modelgateway-static.bicep' = if (!empty(modelsStatic)) {
+  name: 'lite-llm-connection-static'
+  params: {
+    aiFoundryName: aiFoundryName
+    connectionName: 'modelgateway-litellm-${resourceToken}-static'
+    apiKey: litelllmasterkey
+    isSharedToAll: true
+    gatewayName: 'litellm'
+    targetUrl: liteLlmApp.outputs.AZURE_RESOURCE_CONTAINER_APP_FQDN
+    staticModels: modelsStatic
   }
 }
 

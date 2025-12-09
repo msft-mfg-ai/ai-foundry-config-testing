@@ -1,0 +1,117 @@
+{
+  "analyzers": {
+    "core": {
+      "enabled": true,
+      "rules": {
+        "adminusername-should-not-be-literal": {
+          "level": "warning"
+        },
+        "artifacts-parameters": {
+          "level": "warning"
+        },
+        "decompiler-cleanup": {
+          "level": "warning"
+        },
+        "explicit-values-for-loc-params": {
+          "level": "off"
+        },
+        "max-asserts": {
+          "level": "warning"
+        },
+        "max-outputs": {
+          "level": "warning"
+        },
+        "max-params": {
+          "level": "warning"
+        },
+        "max-resources": {
+          "level": "warning"
+        },
+        "max-variables": {
+          "level": "warning"
+        },
+        "no-conflicting-metadata": {
+          "level": "warning"
+        },
+        "no-deployments-resources": {
+          "level": "warning"
+        },
+        "no-hardcoded-env-urls": {
+          "level": "warning"
+        },
+        "no-hardcoded-location": {
+          "level": "warning"
+        },
+        "no-loc-expr-outside-params": {
+          "level": "warning"
+        },
+        "no-unnecessary-dependson": {
+          "level": "warning"
+        },
+        "no-unused-existing-resources": {
+          "level": "warning"
+        },
+        "no-unused-params": {
+          "level": "warning"
+        },
+        "no-unused-vars": {
+          "level": "warning"
+        },
+        "outputs-should-not-contain-secrets": {
+          "level": "error"
+        },
+        "prefer-interpolation": {
+          "level": "warning"
+        },
+        "prefer-unquoted-property-names": {
+          "level": "warning"
+        },
+        "secure-parameter-default": {
+          "level": "error"
+        },
+        "secure-params-in-nested-deploy": {
+          "level": "error"
+        },
+        "secure-secrets-in-params": {
+          "level": "error"
+        },
+        "simplify-interpolation": {
+          "level": "warning"
+        },
+        "simplify-json-null": {
+          "level": "warning"
+        },
+        "use-parent-property": {
+          "level": "warning"
+        },
+        "use-recent-api-versions": {
+          "level": "off"
+        },
+        "use-recent-module-versions": {
+          "level": "warning"
+        },
+        "use-resource-id-functions": {
+          "level": "warning"
+        },
+        "use-resource-symbol-reference": {
+          "level": "warning"
+        },
+        "use-safe-access": {
+          "level": "warning"
+        },
+        "use-secure-value-for-secure-inputs": {
+          "level": "error"
+        },
+        "use-stable-resource-identifiers": {
+          "level": "warning"
+        },
+        "use-stable-vm-image": {
+          "level": "warning"
+        },
+        "what-if-short-circuiting": {
+          "level": "warning"
+        }
+      }
+    }
+  }
+}

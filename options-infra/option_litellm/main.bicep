@@ -168,8 +168,44 @@ model_list:
       model: azure/o3-mini
       api_base: os.environ/AZURE_API_BASE # runs os.getenv("AZURE_API_BASE")
       api_key: os.environ/AZURE_API_KEY # runs os.getenv("AZURE_API_KEY")
-      api_version: "2025-01-01-preview"            
+      api_version: "2025-01-01-preview"
+
+general_settings:
+  store_model_in_db: true
+  store_prompts_in_spend_logs: true
     '''
+    modelsStatic: [
+      {
+        name: 'azure-gpt-4.1-mini'
+        properties: {
+          model: {
+            name: 'gpt-4.1-mini'
+            version: '2025-01-01-preview'
+            format: 'OpenAI'
+          }
+        }
+      }
+      {
+        name: 'azure-gpt-5-mini'
+        properties: {
+          model: {
+            name: 'gpt-5-mini'
+            version: '2025-04-01-preview'
+            format: 'OpenAI'
+          }
+        }
+      }
+      {
+        name: 'azure-o3-mini'
+        properties: {
+          model: {
+            name: 'o3-mini'
+            version: '2025-01-01-preview'
+            format: 'OpenAI'
+          }
+        }
+      }
+    ]
     // litellm_settings:
     //     enable_azure_ad_token_refresh: true
     // https://docs.litellm.ai/docs/providers/azure#azure-ad-token-refresh---defaultazurecredential
