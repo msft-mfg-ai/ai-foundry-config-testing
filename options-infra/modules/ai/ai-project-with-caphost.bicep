@@ -1,4 +1,3 @@
-
 import * as types from '../types/types.bicep'
 
 param aiDependencies types.aiDependenciesType
@@ -12,20 +11,23 @@ param location string
 param foundryName string
 param managedIdentityId string? // Use System Assigned Identity
 
-param projectId int
+param projectId int = 1
+param project_name string = 'ai-project-${projectId}'
+param project_description string = 'AI Project ${projectId}'
+param display_name string = 'AI Project ${projectId}'
 
 resource foundry 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
   name: foundryName
 }
 
 module aiProject './ai-project.bicep' = {
-  name: 'deployment-for-ai-project-${projectId}'
+  name: 'deployment-for-${project_name}'
   params: {
     foundry_name: foundryName
     location: location
-    project_name: 'ai-project-${projectId}'
-    project_description: 'AI Project ${projectId}'
-    display_name: 'AI Project ${projectId}'
+    project_name: project_name
+    project_description: project_description
+    display_name: display_name
     managedIdentityId: managedIdentityId // Use System Assigned Identity
     existingAiResourceId: existingAiResourceId
     existingAiKind: existingAiResourceKind
@@ -44,9 +46,8 @@ module aiProject './ai-project.bicep' = {
   }
 }
 
-
 module formatProjectWorkspaceId '../ai/format-project-workspace-id.bicep' = {
-  name: 'format-project-${projectId}-workspace-id-deployment'
+  name: 'format-${project_name}-workspace-id-deployment'
   params: {
     projectWorkspaceId: aiProject.outputs.projectWorkspaceId
   }
@@ -55,7 +56,7 @@ module formatProjectWorkspaceId '../ai/format-project-workspace-id.bicep' = {
 //Assigns the project SMI the storage blob data contributor role on the storage account
 
 module storageAccountRoleAssignment '../iam/azure-storage-account-role-assignment.bicep' = {
-  name: 'storage-role-assignment-deployment-${projectId}'
+  name: 'storage-role-assignment-deployment-${project_name}'
   scope: resourceGroup(aiDependencies.azureStorage.subscriptionId, aiDependencies.azureStorage.resourceGroupName)
   params: {
     azureStorageName: aiDependencies.azureStorage.name
@@ -65,7 +66,7 @@ module storageAccountRoleAssignment '../iam/azure-storage-account-role-assignmen
 
 // The Comos DB Operator role must be assigned before the caphost is created
 module cosmosAccountRoleAssignments '../iam/cosmosdb-account-role-assignment.bicep' = {
-  name: 'cosmos-account-ra-project-deployment-${projectId}'
+  name: 'cosmos-account-ra-project-deployment-${project_name}'
   scope: resourceGroup(aiDependencies.cosmosDB.subscriptionId, aiDependencies.cosmosDB.resourceGroupName)
   params: {
     cosmosDBName: aiDependencies.cosmosDB.name
@@ -75,7 +76,7 @@ module cosmosAccountRoleAssignments '../iam/cosmosdb-account-role-assignment.bic
 
 // This role can be assigned before or after the caphost is created
 module aiSearchRoleAssignments '../iam/ai-search-role-assignments.bicep' = {
-  name: 'ai-search-ra-project-deployment-${projectId}'
+  name: 'ai-search-ra-project-deployment-${project_name}'
   scope: resourceGroup(aiDependencies.aiSearch.subscriptionId, aiDependencies.aiSearch.resourceGroupName)
   params: {
     aiSearchName: aiDependencies.aiSearch.name
@@ -85,7 +86,7 @@ module aiSearchRoleAssignments '../iam/ai-search-role-assignments.bicep' = {
 
 // This module creates the capability host for the project and account
 module addProjectCapabilityHost 'add-project-capability-host.bicep' = {
-  name: 'capabilityHost-configuration-deployment-${projectId}'
+  name: 'capabilityHost-configuration-deployment-${project_name}'
   params: {
     accountName: foundryName
     projectName: aiProject.outputs.project_name
@@ -95,15 +96,15 @@ module addProjectCapabilityHost 'add-project-capability-host.bicep' = {
     aiFoundryConnectionName: aiProject.outputs.aiFoundryConnectionName
   }
   dependsOn: [
-     cosmosAccountRoleAssignments
-     storageAccountRoleAssignment
-     aiSearchRoleAssignments
+    cosmosAccountRoleAssignments
+    storageAccountRoleAssignment
+    aiSearchRoleAssignments
   ]
 }
 
 // The Storage Blob Data Owner role must be assigned after the caphost is created
 module storageContainersRoleAssignment '../iam/blob-storage-container-role-assignments.bicep' = {
-  name: 'storage-containers-deployment-${projectId}'
+  name: 'storage-containers-deployment-${project_name}'
   scope: resourceGroup(aiDependencies.azureStorage.subscriptionId, aiDependencies.azureStorage.resourceGroupName)
   params: {
     aiProjectPrincipalId: aiProject.outputs.accountPrincipalId
@@ -117,17 +118,16 @@ module storageContainersRoleAssignment '../iam/blob-storage-container-role-assig
 
 // The Cosmos Built-In Data Contributor role must be assigned after the caphost is created
 module cosmosContainerRoleAssignments '../iam/cosmos-container-role-assignments.bicep' = {
-  name: 'cosmos-ra-deployment-${projectId}'
+  name: 'cosmos-ra-deployment-${project_name}'
   scope: resourceGroup(aiDependencies.cosmosDB.subscriptionId, aiDependencies.cosmosDB.resourceGroupName)
   params: {
     cosmosAccountName: aiDependencies.cosmosDB.name
     projectWorkspaceId: formatProjectWorkspaceId.outputs.projectWorkspaceIdGuid
     projectPrincipalId: aiProject.outputs.accountPrincipalId
-
   }
-dependsOn: [
-  addProjectCapabilityHost
-  storageContainersRoleAssignment
+  dependsOn: [
+    addProjectCapabilityHost
+    storageContainersRoleAssignment
   ]
 }
 
