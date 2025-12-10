@@ -24,7 +24,7 @@ param existingAiResourceId string
 param existingAiResourceKind string = 'AIServices'
 
 @description('EXISTING AI Search Resource Id in Foundry VNet')
-param existingFoundryAISearchId string = ''
+param existingAISearchId string = ''
 
 @description('Name of the EXISTING Cosmos DB Id in App VNet')
 param existingCosmosDBId string
@@ -43,7 +43,7 @@ param existingApplicationInsightsResourceId string
 var resourceToken = toLower(uniqueString(resourceGroup().id))
 
 // ==================== CREATED RESOURCES ====================
-var existingAiSearchSplit = split(existingFoundryAISearchId, '/')
+var existingAiSearchSplit = split(existingAISearchId, '/')
 var existingStorageSplit = split(existingStorageId, '/')
 var existingCosmosDBSplit = split(existingCosmosDBId, '/')
 
@@ -52,7 +52,7 @@ var existingCosmosDBSplit = split(existingCosmosDBId, '/')
 var aiDependencies types.aiDependenciesType = {
   aiSearch: {
     name: existingAiSearchSplit[8]
-    resourceId: existingFoundryAISearchId
+    resourceId: existingAISearchId
     resourceGroupName: existingAiSearchSplit[4]
     subscriptionId: existingAiSearchSplit[2]
   }
