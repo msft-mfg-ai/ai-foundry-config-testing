@@ -63,13 +63,17 @@ module foundry './modules/ai/ai-foundry.bicep' = {
     agentSubnetId: vnet.outputs.agentSubnetId // Use the first agent subnet
     deployments: [
       {
-        name: 'gpt-35-turbo'
+        name: 'gpt-4.1-mini'
         properties: {
           model: {
             format: 'OpenAI'
-            name: 'gpt-35-turbo'
-            version: '0125'
+            name: 'gpt-4.1-mini'
+            version: '2025-04-14'
           }
+        }
+        sku: {
+          name: 'GlobalStandard'
+          capacity: 20
         }
       }
     ]

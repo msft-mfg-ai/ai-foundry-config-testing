@@ -70,13 +70,17 @@ module aiServices './modules/ai/ai-foundry.bicep' = {
     publicNetworkAccess: 'Disabled' // 'enabled' or 'disabled'
     deployments: [
       {
-        name: 'gpt-35-turbo'
+        name: 'gpt-4.1-mini'
         properties: {
           model: {
             format: 'OpenAI'
-            name: 'gpt-35-turbo'
-            version: '0125'
+            name: 'gpt-4.1-mini'
+            version: '2025-04-14'
           }
+        }
+        sku: {
+          name: 'GlobalStandard'
+          capacity: 20
         }
       }
     ]
@@ -92,13 +96,17 @@ module aiServicesPublic './modules/ai/ai-foundry.bicep' = {
     publicNetworkAccess: 'Enabled' // 'enabled' or 'disabled'
     deployments: [
       {
-        name: 'gpt-35-turbo'
+        name: 'gpt-4.1-mini'
         properties: {
           model: {
             format: 'OpenAI'
-            name: 'gpt-35-turbo'
-            version: '0125'
+            name: 'gpt-4.1-mini'
+            version: '2025-04-14'
           }
+        }
+        sku: {
+          name: 'GlobalStandard'
+          capacity: 20
         }
       }
     ]

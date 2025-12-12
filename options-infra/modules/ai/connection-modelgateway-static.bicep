@@ -29,7 +29,7 @@ param authType string = 'ApiKey'
 param isSharedToAll bool = false
 
 // Connection naming - can be overridden via parameter
-param connectionName string = ''  // Optional: specify custom connection name
+param connectionName string = '' // Optional: specify custom connection name
 
 // API key for the ModelGateway endpoint
 @secure()
@@ -44,9 +44,9 @@ var finalConnectionName = connectionName != '' ? connectionName : generatedConne
   'true'
   'false'
 ])
-param deploymentInPath string = 'false'  // Controls how deployment names are passed to the gateway
+param deploymentInPath string = 'false' // Controls how deployment names are passed to the gateway
 
-param inferenceAPIVersion string = '2024-02-01'  // API version for inference calls
+param inferenceAPIVersion string = '2024-02-01' // API version for inference calls
 
 // Static model list configuration - accept as parameter
 param staticModels array = [
@@ -61,11 +61,11 @@ param staticModels array = [
     }
   }
   {
-    name: 'gpt-3.5-turbo'
+    name: 'gpt-4.1-mini'
     properties: {
       model: {
-        name: 'gpt-3.5-turbo'
-        version: '0613'
+        name: 'gpt-4.1-mini'
+        version: '2025-04-14'
         format: 'OpenAI'
       }
     }
@@ -87,7 +87,7 @@ param staticModels array = [
 var modelGatewayMetadata = {
   deploymentInPath: deploymentInPath
   inferenceAPIVersion: inferenceAPIVersion
-  models: string(staticModels)  // Serialize static models array as JSON string
+  models: string(staticModels) // Serialize static models array as JSON string
 }
 
 // Use the common module to create the ModelGateway connection
