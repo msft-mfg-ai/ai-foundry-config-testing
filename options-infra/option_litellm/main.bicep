@@ -108,7 +108,7 @@ module project4 '../modules/ai/ai-project-with-caphost.bicep' = {
   }
 }
 
-module dnsAca 'br/public:avm/res/network/private-dns-zone:0.7.1' = {
+module dnsAca 'br/public:avm/res/network/private-dns-zone:0.8.0' = {
   name: 'dns-aca'
   params: {
     name: 'privatelink.${location}.azurecontainerapps.io'
@@ -120,7 +120,7 @@ module dnsAca 'br/public:avm/res/network/private-dns-zone:0.7.1' = {
   }
 }
 
-module dnsPostgress 'br/public:avm/res/network/private-dns-zone:0.7.1' = {
+module dnsPostgress 'br/public:avm/res/network/private-dns-zone:0.8.0' = {
   name: 'dns-postgress'
   params: {
     name: 'privatelink.postgres.database.azure.com'
@@ -156,23 +156,31 @@ model_list:
       model: azure/gpt-4.1-mini
       api_base: os.environ/AZURE_API_BASE # runs os.getenv("AZURE_API_BASE")
       api_key: os.environ/AZURE_API_KEY # runs os.getenv("AZURE_API_KEY")
-      api_version: "2025-01-01-preview"
+      api_version: "2025-04-14"
   - model_name: azure-gpt-5-mini
     litellm_params:
       model: azure/gpt-5-mini
       api_base: os.environ/AZURE_API_BASE # runs os.getenv("AZURE_API_BASE")
       api_key: os.environ/AZURE_API_KEY # runs os.getenv("AZURE_API_KEY")
-      api_version: "2025-04-01-preview"
+      api_version: "2025-08-07"
   - model_name: azure-o3-mini
     litellm_params:
       model: azure/o3-mini
       api_base: os.environ/AZURE_API_BASE # runs os.getenv("AZURE_API_BASE")
       api_key: os.environ/AZURE_API_KEY # runs os.getenv("AZURE_API_KEY")
-      api_version: "2025-01-01-preview"
+      api_version: "2025-01-31"
 
 general_settings:
   store_model_in_db: true
   store_prompts_in_spend_logs: true
+
+litellm_settings:
+  drop_params: true
+  callbacks: ["otel"]  # list of callbacks - runs on success and failure    
+
+callback_settings:
+  otel:
+    message_logging: True
     '''
     modelsStatic: [
       {
@@ -212,7 +220,7 @@ general_settings:
   }
 }
 
-module publicIpAddress 'br/public:avm/res/network/public-ip-address:0.9.1' = {
+module publicIpAddress 'br/public:avm/res/network/public-ip-address:0.10.0' = {
   params: {
     // Required parameters
     name: 'app-gateway-${resourceToken}-public-ip'
@@ -231,6 +239,10 @@ module acaAppGateway '../modules/appgtw/application-gateway.bicep' = {
     applicationGatewaySubnetId: vnet.outputs.appGwSubnetId
     acaName: 'aca${resourceToken}'
     publicIpResourceId: publicIpAddress.outputs.resourceId
+    tags: {
+      CostControl:'Ignore'
+      'hidden-title':'LiteLLM public gateway'
+    }
   }
 }
 

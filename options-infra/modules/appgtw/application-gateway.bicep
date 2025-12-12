@@ -2,6 +2,7 @@ param name string
 param location string = resourceGroup().location
 param applicationGatewaySubnetId string
 param publicIpResourceId string
+param tags object = {}
 
 param applicationFqdn string
 param acaName string = 'aca'
@@ -186,10 +187,10 @@ module applicationGateway 'br/public:avm/res/network/application-gateway:0.7.2' 
       //   }
       // }
     ]
-    tags: {
+    tags: union(tags, {
       Environment: 'Non-Prod'
       'hidden-title': 'App Gateway for ${acaName}'
       Role: 'DeploymentValidation'
-    }
+    })
   }
 }

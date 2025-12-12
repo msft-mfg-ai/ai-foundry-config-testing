@@ -33,6 +33,10 @@ var litelllmasterkey = take(uniqueString(resourceToken, 'litellm'), 6)
 module postgressDb '../db/postgress.bicep' = {
   name: 'postgress-db-deployment'
   params: {
+    tags: {
+      CostControl:'Ignore'
+      'hidden-title':'LiteLLM Postgress DB'
+    }
     location: location
     name: 'pg-${resourceToken}'
     keyVaultName: keyVault.outputs.AZURE_RESOURCE_KEY_VAULT_NAME
@@ -77,7 +81,7 @@ module keyVault '../kv/key-vault.bicep' = {
   }
 }
 
-module dnsAca 'br/public:avm/res/network/private-dns-zone:0.7.1' = {
+module dnsAca 'br/public:avm/res/network/private-dns-zone:0.8.0' = {
   name: 'dns-aca'
   params: {
     name: 'privatelink.${location}.azurecontainerapps.io'
@@ -205,6 +209,14 @@ module liteLlmApp '../aca/container-app.bicep' = {
           name: 'DATABASE_URL'
           keyVaultSecretName: postgressDb.outputs.pgConnectionStringSecretName
         }
+        {
+          name: 'OTEL_ENDPOINT'
+          value: 'http://k8se-otel.k8se-apps.svc.cluster.local:4317'
+        }
+        {
+          name: 'OTEL_EXPORTER'
+          value: 'otlp_grpc'
+        }
       ]
     }
     containerArgs: [
@@ -231,7 +243,7 @@ module liteLlmApp '../aca/container-app.bicep' = {
     initContainersTemplate: [
       {
         name: 'config-initializer'
-        image: 'busybox:latest'
+        image: 'alpine:latest'
         resources: {
           cpu: json('0.25')
           memory: '0.5Gi'
@@ -239,7 +251,7 @@ module liteLlmApp '../aca/container-app.bicep' = {
         command: ['/bin/sh']
         args: [
           '-c'
-          'printf "%s" "$CONFIG_YAML" > /config/config.yml && echo "Config file created:" && cat /config/config.yml'
+          'apk add --no-cache gettext && printf "%s" "$CONFIG_YAML" > /config/config_template.yml && envsubst < /config/config_template.yml > /config/config.yml && echo "Config file created:" && cat /config/config.yml'
         ]
         env: [
           {

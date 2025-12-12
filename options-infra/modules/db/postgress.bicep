@@ -1,5 +1,6 @@
 param name string
-param location string
+param location string = resourceGroup().location
+param tags object = {}
 param workspaceResourceId string
 param privateEndpointSubnetId string
 param privateDnsZoneResourceId string
@@ -46,6 +47,7 @@ module flexibleServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15
     skuName: skuName
     tier: 'Burstable'
     // Non-required parameters
+    tags: tags
     administratorLogin: 'myPgAdmin'
     administratorLoginPassword: password
     authConfig: {
