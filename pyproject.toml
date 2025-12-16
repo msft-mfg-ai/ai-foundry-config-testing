@@ -14,5 +14,9 @@ dependencies = [
 
 [tool.uv.workspace]
 members = [
+    "agents",
+]
+exclude = [
     "agents_v2",
 ]
+

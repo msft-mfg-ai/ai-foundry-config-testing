@@ -15,8 +15,7 @@ from dotenv import load_dotenv
 
 # Configure logging for debug
 logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
 # Set specific loggers to debug level

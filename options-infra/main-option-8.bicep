@@ -77,7 +77,7 @@ module logAnalytics './modules/monitor/loganalytics.bicep' = {
 }
 
 module foundry './modules/ai/ai-foundry.bicep' = {
-  name: 'foundry-shared'
+  name: 'foundry-deployment'
   params: {
     managedIdentityId: '' // Use System Assigned Identity
     name: 'ai-foundry-${resourceToken}'
