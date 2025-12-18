@@ -26,6 +26,7 @@ Security Benefits:
 // Resource names and identifiers
 @description('Name of the AI Foundry account')
 param aiAccountName string?
+param location string = resourceGroup().location
 param aiAccountNameResourceGroup string = resourceGroup().name
 param aiAccountSubscriptionId string = subscription().subscriptionId
 @description('Name of the AI Search service')
@@ -119,7 +120,7 @@ resource peSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' existin
 // - Establishes private connection to AI Search service
 resource aiSearchPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = {
   name: '${aiSearchName}-private-endpoint'
-  location: resourceGroup().location
+  location: location
   properties: {
     subnet: { id: peSubnet.id } // Deploy in customer hub subnet
     privateLinkServiceConnections: [
@@ -141,7 +142,7 @@ resource aiSearchPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01'
 // - Establishes private connection to blob storage
 resource storagePrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = {
   name: '${storageName}-private-endpoint'
-  location: resourceGroup().location
+  location: location
   properties: {
     subnet: { id: peSubnet.id } // Deploy in customer hub subnet
     privateLinkServiceConnections: [
@@ -160,7 +161,7 @@ resource storagePrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' 
 
 resource cosmosDBPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = {
   name: '${cosmosDBName}-private-endpoint'
-  location: resourceGroup().location
+  location: location
   properties: {
     subnet: { id: peSubnet.id } // Deploy in customer hub subnet
     privateLinkServiceConnections: [

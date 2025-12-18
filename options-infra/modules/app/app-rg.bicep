@@ -44,7 +44,6 @@ module foundry '../ai/ai-foundry.bicep' = {
     managedIdentityId: '' // Use System Assigned Identity
     name: 'ai-foundry-no-models-${resourceToken}'
     location: location
-    appInsightsId: logAnalytics.outputs.applicationInsightsId
     publicNetworkAccess: 'Enabled'
     agentSubnetId: agentSubnetId
   }
@@ -55,6 +54,7 @@ module aiProject '../ai/ai-project.bicep' = {
   scope: resourceGroup()
   params: {
     foundry_name: foundry.outputs.name
+    appInsightsId: logAnalytics.outputs.applicationInsightsId
     location: location
     project_name: 'ai-project-${appName}'
     project_description: 'AI Project ${appName} with existing, external AI resource ${existingAiResourceId}'

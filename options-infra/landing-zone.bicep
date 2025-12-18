@@ -210,16 +210,10 @@ module ai_dependencies 'modules/ai-dependencies/standard-dependent-resources.bic
     cosmosDBName: 'project-cosmosdb-${resourceToken}'
 
     // AI Search Service parameters
-    aiSearchResourceId: ''
-    aiSearchExists: false
 
     // Storage Account
-    azureStorageAccountResourceId: ''
-    azureStorageExists: false
 
     // Cosmos DB Account
-    cosmosDBResourceId: ''
-    cosmosDBExists: false
   }
 }
 

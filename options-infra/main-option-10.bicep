@@ -111,16 +111,10 @@ module ai_dependencies './modules/ai-dependencies/standard-dependent-resources.b
     aiSearchName: 'project-search-${resourceToken}'
     cosmosDBName: 'project-cosmosdb-${resourceToken}'
     // AI Search Service parameters
-    aiSearchResourceId: ''
-    aiSearchExists: false
 
     // Storage Account
-    azureStorageAccountResourceId: ''
-    azureStorageExists: false
 
     // Cosmos DB Account
-    cosmosDBResourceId: ''
-    cosmosDBExists: false
   }
 }
 
@@ -169,7 +163,6 @@ module foundry './modules/ai/ai-foundry.bicep' = {
   params: {
     managedIdentityId: '' // Use System Assigned Identity
     name: 'ai-foundry-${resourceToken}'
-    appInsightsId: logAnalytics.outputs.applicationInsightsId
     publicNetworkAccess: 'Enabled'
     agentSubnetId: foundry_vnet.outputs.agentSubnetId
     deployments: [
@@ -199,6 +192,7 @@ module project1 './modules/ai/ai-project-with-caphost.bicep' = {
     location: foundryLocation
     projectId: 1
     aiDependencies: ai_dependencies.outputs.aiDependencies
+    appInsightsId: logAnalytics.outputs.applicationInsightsId
   }
 }
 

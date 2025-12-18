@@ -1,12 +1,10 @@
-param existing_CogServices_Name string = ''
-param existing_CogServices_RG_Name string = resourceGroup().name
-param existing_CogServices_SubId string = subscription().subscriptionId
+param existing_Foundry_Name string = ''
+param existing_Foundry_RG_Name string = resourceGroup().name
+param existing_Foundry_SubId string = subscription().subscriptionId
 param name string = ''
 param location string = resourceGroup().location
 param tags object = {}
 param agentSubnetId string = ''
-@description('Application Insights resource ID to create the Azure Foundry connection')
-param appInsightsId string = ''
 @allowed([
   'Disabled'
   'Enabled'
@@ -19,10 +17,15 @@ param sku object = {
 param myIpAddress string = ''
 param managedIdentityId string = ''
 
+// Keyvault integration
+param keyVaultResourceId string?
+@description('Bunch of known issues with KeyVault integration, so disable by default')
+param keyVaultConnectionEnabled bool = false
+
 // --------------------------------------------------------------------------------------------------------------
 // Variables
 // --------------------------------------------------------------------------------------------------------------
-var useExistingService = !empty(existing_CogServices_Name)
+var useExistingService = !empty(existing_Foundry_Name)
 var cognitiveServicesKeySecretName = 'cognitive-services-key'
 param gpt41Deployment aiModelTDeploymentType?
 param deployments aiModelTDeploymentType[] = []
@@ -58,19 +61,8 @@ resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-p
 
 // --------------------------------------------------------------------------------------------------------------
 resource existingAccount 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = if (useExistingService) {
-  scope: resourceGroup(existing_CogServices_RG_Name, existing_CogServices_SubId)
-  name: existing_CogServices_Name
-}
-
-// --------------------------- Application Insights resource if needed ------------------------------------------------
-var insightsParts string[] = split(appInsightsId ?? '', '/')
-var appInsightsName = length(insightsParts) > 0 ? insightsParts[length(insightsParts) - 1] : ''
-var appInsightsResourceGroupName = length(insightsParts) > 4 ? insightsParts[4] : ''
-var appInsightsSubscriptionId = length(insightsParts) > 2 ? insightsParts[2] : ''
-
-resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = if (!empty(appInsightsId)) {
-  name: appInsightsName
-  scope: resourceGroup(appInsightsSubscriptionId, appInsightsResourceGroupName)
+  scope: resourceGroup(existing_Foundry_SubId, existing_Foundry_RG_Name)
+  name: existing_Foundry_Name
 }
 
 // --------------------------------------------------------------------------------------------------------------
@@ -119,26 +111,6 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = if 
     customSubDomainName: toLower('${(name)}')
   }
   sku: sku
-
-  // Creates the Azure Foundry connection Application Insights
-  resource connection 'connections@2025-04-01-preview' = if (!empty(appInsightsName)) {
-    name: 'applicationInsights'
-    properties: {
-      category: 'AppInsights'
-      //group: 'ServicesAndApps'  // read-only...
-      target: appInsights.id
-      authType: 'ApiKey'
-      isSharedToAll: true
-      //isDefault: true  // not valid property
-      credentials: {
-        key: appInsights!.properties.InstrumentationKey
-      }
-      metadata: {
-        ApiType: 'Azure'
-        ResourceId: appInsights.id
-      }
-    }
-  }
 }
 
 @batchSize(1)
@@ -153,13 +125,71 @@ resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01
 ]
 
 // --------------------------------------------------------------------------------------------------------------
+// Key Vault integration
+// --------------------------------------------------------------------------------------------------------------
+var addKeyVault = !empty(keyVaultResourceId) && keyVaultConnectionEnabled
+var keyVaultParts string[] = split(keyVaultResourceId ?? '', '/')
+var keyVaultName = length(keyVaultParts) > 0 ? last(keyVaultParts) : null
+var keyVaultResourceGroupName = length(keyVaultParts) > 4 ? keyVaultParts[4] : null
+var keyVaultSubscriptionId = length(keyVaultParts) > 2 ? keyVaultParts[2] : null
+
+// Conditionally refers your existing Azure Key Vault resource
+resource existingKeyVault 'Microsoft.KeyVault/vaults@2024-11-01' existing = if (addKeyVault) {
+  name: keyVaultName!
+  scope: resourceGroup(keyVaultSubscriptionId!, keyVaultResourceGroupName!)
+}
+
+resource foundry_project 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' = {
+  parent: account
+  name: 'project-for-keyvault'
+  tags: tags
+  location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    description: 'Project to enable Key Vault integration'
+    displayName: 'Project for Key Vault Integration'
+  }
+}
+
+@onlyIfNotExists()
+resource connection 'Microsoft.CognitiveServices/accounts/connections@2025-04-01-preview' = if (addKeyVault && !useExistingService) {
+  name: '${name}-keyvault-connection'
+  parent: account
+  properties: {
+    category: 'AzureKeyVault'
+    target: existingKeyVault.id
+    authType: 'AccountManagedIdentity'
+    isSharedToAll: true
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: existingKeyVault.id
+      location: existingKeyVault!.location
+    }
+  }
+  dependsOn: [
+    foundry_project
+  ]
+}
+
+// Include RBAC on Key Vault for Foundry
+module kvRoleAssignment '../kv/kv-role-assignment.bicep' = if (addKeyVault && !useExistingService) {
+  name: 'kv-role-assignment-${name}'
+  params: {
+    keyVaultName: keyVaultName!
+    principalId: empty(managedIdentityId) ? account.?identity.principalId ?? '' : identity.properties.principalId
+  }
+}
+// --------------------------------------------------------------------------------------------------------------
 // Outputs
 // --------------------------------------------------------------------------------------------------------------
 output id string = useExistingService ? existingAccount.id : account.id
+@description('The name of Foundry Account')
 output name string = useExistingService ? existingAccount.name : account.name
 output endpoint string = useExistingService ? existingAccount!.properties.endpoint : account!.properties.endpoint
-output resourceGroupName string = useExistingService ? existing_CogServices_RG_Name : resourceGroup().name
-output subscriptionId string = useExistingService ? existing_CogServices_SubId : subscription().subscriptionId
+output resourceGroupName string = useExistingService ? existing_Foundry_RG_Name : resourceGroup().name
+output subscriptionId string = useExistingService ? existing_Foundry_SubId : subscription().subscriptionId
 output cognitiveServicesKeySecretName string = cognitiveServicesKeySecretName
 
 output accountPrincipalId string = empty(managedIdentityId)
