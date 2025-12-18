@@ -77,7 +77,6 @@ module foundry './modules/ai/ai-foundry.bicep' = {
   params: {
     managedIdentityId: '' // Use System Assigned Identity
     name: 'ai-foundry-${resourceToken}'
-    appInsightsId: existingApplicationInsightsResourceId
     publicNetworkAccess: 'Disabled'  // ✅ Changed to Disabled for security
     agentSubnetId: existingFoundryAgentSubnetId
     deployments: []  // ✅ Empty - using existing Azure OpenAI resource
@@ -94,6 +93,7 @@ module project1 './modules/ai/ai-project-with-caphost.bicep' = {
     aiDependencies: aiDependencies
     existingAiResourceId: existingAiResourceId
     existingAiResourceKind: existingAiResourceKind
+    appInsightsId: existingApplicationInsightsResourceId
   }
 }
 

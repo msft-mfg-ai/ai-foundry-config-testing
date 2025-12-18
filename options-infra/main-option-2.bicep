@@ -38,7 +38,6 @@ module foundry './modules/ai/ai-foundry.bicep' = {
     managedIdentityId: identity.outputs.managedIdentityId
     name: 'ai-foundry-${resourceToken}'
     location: location
-    appInsightsId: logAnalytics.outputs.applicationInsightsId
     publicNetworkAccess: 'Enabled'
   }
 }
@@ -56,6 +55,7 @@ module aiProject './modules/ai/ai-project.bicep' = {
     existingAiKind: existingAiResourceKind
     usingFoundryAiConnection: true // Use the AI Foundry connection for the project
     createHubCapabilityHost: true
+    appInsightsId: logAnalytics.outputs.applicationInsightsId
   }
 }
 

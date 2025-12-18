@@ -16,6 +16,9 @@ param project_name string = 'ai-project-${projectId}'
 param project_description string = 'AI Project ${projectId}'
 param display_name string = 'AI Project ${projectId}'
 
+param appInsightsId string?
+
+
 resource foundry 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
   name: foundryName
 }
@@ -31,6 +34,7 @@ module aiProject './ai-project.bicep' = {
     managedIdentityId: managedIdentityId // Use System Assigned Identity
     existingAiResourceId: existingAiResourceId
     existingAiKind: existingAiResourceKind
+    appInsightsId: appInsightsId
 
     aiSearchName: aiDependencies.aiSearch.name
     aiSearchServiceResourceGroupName: aiDependencies.aiSearch.resourceGroupName

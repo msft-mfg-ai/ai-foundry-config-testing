@@ -27,6 +27,19 @@ param azureStorageSubscriptionId string = ''
 param azureStorageResourceGroupName string = ''
 param createHubCapabilityHost bool = false
 
+param appInsightsId string?
+
+// --------------------------- Application Insights resource if needed ------------------------------------------------
+var insightsParts string[] = split(appInsightsId ?? '', '/')
+var appInsightsName = length(insightsParts) > 0 ? insightsParts[length(insightsParts) - 1] : ''
+var appInsightsResourceGroupName = length(insightsParts) > 4 ? insightsParts[4] : ''
+var appInsightsSubscriptionId = length(insightsParts) > 2 ? insightsParts[2] : ''
+
+resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = if (!empty(appInsightsId)) {
+  name: appInsightsName
+  scope: resourceGroup(appInsightsSubscriptionId, appInsightsResourceGroupName)
+}
+
 // --------------------------------------------------------------------------------------------------------------
 // split managed identity resource ID to get the name
 var identityParts = split(managedIdentityId, '/')
@@ -97,6 +110,26 @@ resource foundry_project 'Microsoft.CognitiveServices/accounts/projects@2025-04-
   properties: {
     description: project_description
     displayName: display_name
+  }
+
+    // Creates the Azure Foundry connection Application Insights
+  resource connection 'connections@2025-04-01-preview' = if (!empty(appInsightsName)) {
+    name: 'applicationInsights-for-${project_name}'
+    properties: {
+      category: 'AppInsights'
+      //group: 'ServicesAndApps'  // read-only...
+      target: appInsights.id
+      authType: 'ApiKey'
+      isSharedToAll: false
+      //isDefault: true  // not valid property
+      credentials: {
+        key: appInsights!.properties.InstrumentationKey
+      }
+      metadata: {
+        ApiType: 'Azure'
+        ResourceId: appInsights.id
+      }
+    }
   }
 }
 

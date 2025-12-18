@@ -2,6 +2,7 @@ param location string
 param resourceToken string
 param appInsightsConnectionString string
 param logAnalyticsWorkspaceResourceId string
+@description('Identity used by Container Apps to access Key Vault and other resources')
 param identityResourceId string
 @secure()
 param openAiApiKey string

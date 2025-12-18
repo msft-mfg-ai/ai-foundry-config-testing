@@ -127,3 +127,6 @@ output logAnalyticsWorkspaceName string = useExistingLogAnalytics
 output appInsightsConnectionString string = useExistingAppInsights
   ? existingApplicationInsightsResource.?properties.ConnectionString ?? ''
   : newApplicationInsightsResource.?properties.ConnectionString ?? ''
+output appInsightsInstrumentationKey string = useExistingAppInsights
+  ? existingApplicationInsightsResource.?properties.InstrumentationKey ?? ''
+  : newApplicationInsightsResource.?properties.InstrumentationKey ?? ''

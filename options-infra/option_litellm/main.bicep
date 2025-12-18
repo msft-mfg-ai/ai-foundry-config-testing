@@ -24,6 +24,15 @@ module identity '../modules/iam/identity.bicep' = {
   }
 }
 
+module foundry_identity '../modules/iam/identity.bicep' = {
+  name: 'foundry-identity-deployment'
+  params: {
+    identityName: 'foundry-${resourceToken}-identity'
+    location: location
+  }
+}
+
+
 // vnet doesn't have to be in the same RG as the AI Services
 // each foundry needs it's own delegated subnet, projects inside of one Foundry share the subnet for the Agents Service
 module vnet '../modules/networking/vnet.bicep' = {
@@ -58,16 +67,33 @@ module logAnalytics '../modules/monitor/loganalytics.bicep' = {
   }
 }
 
+module keyVault '../modules/kv/key-vault.bicep' = {
+  name: 'key-vault-deployment-for-foundry'
+  params: {
+    tags: {}
+    location: location
+    name: take('kv-foundry-${resourceToken}', 24)
+    logAnalyticsWorkspaceId: logAnalytics.outputs.logAnalyticsWorkspaceId
+    doRoleAssignments: true
+    secrets: []
+
+    publicAccessEnabled: false
+    privateEndpointSubnetId: vnet.outputs.peSubnetId
+    privateEndpointName: 'pe-kv-foundry-${resourceToken}'
+    privateDnsZoneResourceId: ai_dependencies.outputs.DNSZones['privatelink.vaultcore.azure.net']!.resourceId
+  }
+}
+
 module foundry '../modules/ai/ai-foundry.bicep' = {
   name: 'foundry-deployment-${resourceToken}'
   params: {
-    managedIdentityId: '' // Use System Assigned Identity
+    managedIdentityId: foundry_identity.outputs.managedIdentityId
     name: 'ai-foundry-${resourceToken}'
     location: location
-    appInsightsId: logAnalytics.outputs.applicationInsightsId
     publicNetworkAccess: 'Enabled'
     agentSubnetId: vnet.outputs.agentSubnetId // Use the first agent subnet
     deployments: [] // no models
+    keyVaultResourceId: keyVault.outputs.AZURE_RESOURCE_KEY_VAULT_ID
   }
 }
 
@@ -92,6 +118,7 @@ module projects '../modules/ai/ai-project-with-caphost.bicep' = [
       aiDependencies: ai_dependencies.outputs.aiDependencies
       existingAiResourceId: null
       managedIdentityId: identities[i - 1].outputs.managedIdentityId
+      appInsightsId: logAnalytics.outputs.applicationInsightsId
     }
   }
 ]

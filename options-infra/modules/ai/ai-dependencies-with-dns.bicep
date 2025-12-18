@@ -7,16 +7,20 @@ param aiAccountNameResourceGroupName string
 param vnetResourceId string
 param peSubnetName string
 
-param azureStorageAccountResourceId string = ''
+param azureStorageName string = 'projstorage${resourceToken}'
+param aiSearchName string = 'project-search-${resourceToken}'
+param cosmosDBName string = 'project-cosmosdb-${resourceToken}'
+
+param azureStorageId string?
+param aiSearchId string?
+param cosmosDBId string?
 
 var vnetParts = split(vnetResourceId, '/')
 var vnetSubscriptionId = vnetParts[2]
 var vnetResourceGroupName = vnetParts[4]
 var existingVnetName = last(vnetParts)
 var vnetName = trim(existingVnetName)
-var azureStorageName = 'projstorage${resourceToken}'
-var aiSearchName = 'project-search-${resourceToken}'
-var cosmosDBName = 'project-cosmosdb-${resourceToken}'
+
 
 module ai_dependencies '../ai-dependencies/standard-dependent-resources.bicep' = {
   name: 'ai-dependencies-deployment'
@@ -27,16 +31,13 @@ module ai_dependencies '../ai-dependencies/standard-dependent-resources.bicep' =
     cosmosDBName: cosmosDBName
 
     // AI Search Service parameters
-    aiSearchResourceId: ''
-    aiSearchExists: false
+    aiSearchResourceId: aiSearchId
 
     // Storage Account
-    azureStorageAccountResourceId: azureStorageAccountResourceId
-    azureStorageExists: !empty(azureStorageAccountResourceId)
+    azureStorageAccountResourceId: azureStorageId
 
     // Cosmos DB Account
-    cosmosDBResourceId: ''
-    cosmosDBExists: false
+    cosmosDBResourceId: cosmosDBId
   }
 }
 

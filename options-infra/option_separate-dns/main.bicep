@@ -113,7 +113,6 @@ module foundry '../modules/ai/ai-foundry.bicep' = {
     managedIdentityId: '' // Use System Assigned Identity
     name: 'ai-foundry-${resourceToken}'
     location: location
-    appInsightsId: logAnalytics.outputs.applicationInsightsId
     publicNetworkAccess: 'Disabled'
     agentSubnetId: vnet.outputs.agentSubnetId // Use the first agent subnet
     deployments: [
@@ -158,6 +157,7 @@ module project1 '../modules/ai/ai-project-with-caphost.bicep' = {
     location: location
     projectId: 1
     aiDependencies: ai_dependencies.outputs.aiDependencies
+    appInsightsId: logAnalytics.outputs.applicationInsightsId
   }
 }
 

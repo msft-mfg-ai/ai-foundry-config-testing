@@ -4,8 +4,11 @@ import * as types from '../types/types.bicep'
 @description('Azure region of the deployment')
 param location string
 
-// @description('The name of the Key Vault')
-// param keyvaultName string
+param tags object = {}
+var defaultTags = union(tags, {
+  deployedBy: 'ai-foundry-infra'
+  'hidden-title': 'Foundry Dependent Resources'
+})
 
 @description('The name of the AI Search resource')
 param aiSearchName string
@@ -19,23 +22,33 @@ param azureStorageName string
 param cosmosDBName string
 
 @description('The AI Search Service full ARM Resource ID. This is an optional field, and if not provided, the resource will be created.')
-param aiSearchResourceId string
+param aiSearchResourceId string?
 
 @description('The AI Storage Account full ARM Resource ID. This is an optional field, and if not provided, the resource will be created.')
-param azureStorageAccountResourceId string
+param azureStorageAccountResourceId string?
 
 @description('The Cosmos DB Account full ARM Resource ID. This is an optional field, and if not provided, the resource will be created.')
-param cosmosDBResourceId string
+param cosmosDBResourceId string?
 
-// param aiServiceExists bool
-param aiSearchExists bool
-param azureStorageExists bool
-param cosmosDBExists bool
+var aiSearchExists bool = !empty(aiSearchResourceId)
+var azureStorageExists bool = !empty(azureStorageAccountResourceId)
+var cosmosDBExists bool = !empty(cosmosDBResourceId)
 
-var cosmosParts = split(cosmosDBResourceId, '/')
+var aiSearchIsValid = aiSearchExists && aiSearchName != last(aiSearchParts)
+  ? fail('The existing AI Search resource name must match the aiSearchName parameter.')
+  : true
+var storageIsValid = azureStorageExists && azureStorageName != last(azureStorageParts)
+  ? fail('The existing Storage Account name must match the azureStorageName parameter.')
+  : true
+var cosmosIsValid = cosmosDBExists && cosmosDBName != last(cosmosParts)
+  ? fail('The existing Cosmos DB account name must match the cosmosDBName parameter.')
+  : true
+
+// Cosmos check
+var cosmosParts = split(cosmosDBResourceId ?? '', '/')
 
 resource existingCosmosDB 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' existing = if (cosmosDBExists) {
-  name: cosmosParts[8]
+  name: last(cosmosParts)
   scope: resourceGroup(cosmosParts[2], cosmosParts[4])
 }
 
@@ -50,6 +63,7 @@ resource cosmosDB 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = if(!cosmo
   name: cosmosDBName
   location: cosmosDbRegion
   kind: 'GlobalDocumentDB'
+  tags: defaultTags
   properties: {
     consistencyPolicy: {
       defaultConsistencyLevel: 'Session'
@@ -70,11 +84,13 @@ resource cosmosDB 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = if(!cosmo
   }
 }
 
-var acsParts = split(aiSearchResourceId, '/')
+// AI Search check
+
+var aiSearchParts = split(aiSearchResourceId ?? '', '/')
 
 resource existingSearchService 'Microsoft.Search/searchServices@2024-06-01-preview' existing = if (aiSearchExists) {
-  name: acsParts[8]
-  scope: resourceGroup(acsParts[2], acsParts[4])
+  name: last(aiSearchParts)
+  scope: resourceGroup(aiSearchParts[2], aiSearchParts[4])
 }
 
 // AI Search creation
@@ -82,6 +98,7 @@ resource existingSearchService 'Microsoft.Search/searchServices@2024-06-01-previ
 resource aiSearch 'Microsoft.Search/searchServices@2024-06-01-preview' = if(!aiSearchExists) {
   name: aiSearchName
   location: location
+  tags: defaultTags
   identity: {
     type: 'SystemAssigned'
   }
@@ -106,10 +123,12 @@ resource aiSearch 'Microsoft.Search/searchServices@2024-06-01-preview' = if(!aiS
   }
 }
 
-var azureStorageParts = split(azureStorageAccountResourceId, '/')
+// Storage Account check
+
+var azureStorageParts = split(azureStorageAccountResourceId ?? '', '/')
 
 resource existingAzureStorageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' existing = if (azureStorageExists) {
-  name: azureStorageParts[8]
+  name: last(azureStorageParts)
   scope: resourceGroup(azureStorageParts[2], azureStorageParts[4])
 }
 
@@ -122,6 +141,7 @@ param sku object = contains(noZRSRegions, location) ? { name: 'Standard_GRS' } :
 resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = if(!azureStorageExists) {
   name: azureStorageName
   location: location
+  tags: defaultTags
   kind: 'StorageV2'
   sku: sku
   properties: {
@@ -139,8 +159,8 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = if(!azureStora
 
 var aiSearchNameFinal string = aiSearchExists ? existingSearchService.name : aiSearch.name
 var aiSearchID string = aiSearchExists ? existingSearchService.id : aiSearch.id
-var aiSearchServiceResourceGroupName string = aiSearchExists ? acsParts[4] : resourceGroup().name
-var aiSearchServiceSubscriptionId string = aiSearchExists ? acsParts[2] : subscription().subscriptionId
+var aiSearchServiceResourceGroupName string = aiSearchExists ? aiSearchParts[4] : resourceGroup().name
+var aiSearchServiceSubscriptionId string = aiSearchExists ? aiSearchParts[2] : subscription().subscriptionId
 
 var azureStorageNameFinal string = azureStorageExists ? existingAzureStorageAccount.name :  storage.name
 var azureStorageId string =  azureStorageExists ? existingAzureStorageAccount.id :  storage.id
@@ -153,6 +173,7 @@ var cosmosDBResourceGroupName string = cosmosDBExists ? cosmosParts[4] : resourc
 var cosmosDBSubscriptionId string = cosmosDBExists ? cosmosParts[2] : subscription().subscriptionId
 
 
+output dependecies_are_valid bool = aiSearchIsValid && storageIsValid && cosmosIsValid
 output aiSearchName string = aiSearchNameFinal
 output aiSearchID string = aiSearchID
 output aiSearchServiceResourceGroupName string = aiSearchServiceResourceGroupName
@@ -167,7 +188,6 @@ output cosmosDBName string = cosmosDBNameFinal
 output cosmosDBId string = cosmosDBId
 output cosmosDBResourceGroupName string = cosmosDBResourceGroupName
 output cosmosDBSubscriptionId string = cosmosDBSubscriptionId
-// output keyvaultId string = keyVault.id
 
 output aiDependencies types.aiDependenciesType = {
   aiSearch: {
