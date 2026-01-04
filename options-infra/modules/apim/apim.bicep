@@ -14,6 +14,23 @@ param aiServicesConfig aiServiceConfigType[] = []
 param resourceSuffix string = uniqueString(subscription().id, resourceGroup().id)
 
 param subscriptionName string = 'foundry-apim-subscription'
+@allowed([
+  'External'
+  'Internal'
+])
+param virtualNetworkType string?
+param subnetResourceId string?
+@description('The pricing tier of this API Management service')
+@allowed([
+  'Consumption'
+  'Developer'
+  'Basic'
+  'Basicv2'
+  'Standard'
+  'Standardv2'
+  'Premium'
+])
+param apimSku string = 'Basicv2'
 
 module apim 'v2/apim.bicep' = {
   name: 'apim-v2'
@@ -26,6 +43,9 @@ module apim 'v2/apim.bicep' = {
     appInsightsInstrumentationKey: appInsightsInstrumentationKey
     appInsightsId: appInsightsId
     resourceSuffix: resourceSuffix
+    apimSku: apimSku
+    virtualNetworkType: virtualNetworkType
+    subnetResourceId: subnetResourceId
   }
 }
 

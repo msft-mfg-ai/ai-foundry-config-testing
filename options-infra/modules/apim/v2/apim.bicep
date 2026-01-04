@@ -68,6 +68,13 @@ param appInsightsId string = ''
 ])
 param releaseChannel string = 'Default'
 
+@allowed([
+  'External'
+  'Internal'
+  'None'
+])
+param virtualNetworkType string = 'None'
+param subnetResourceId string?
 // ------------------
 //    TYPE DEFINITIONS
 // ------------------
@@ -100,6 +107,10 @@ resource apimService 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
     publisherEmail: publisherEmail
     publisherName: publisherName
     releaseChannel: releaseChannel
+    virtualNetworkType: virtualNetworkType
+    virtualNetworkConfiguration: empty(subnetResourceId) ? null : {
+      subnetResourceId: subnetResourceId
+    }
   }
   identity: {
     type: apimManagedIdentityType
