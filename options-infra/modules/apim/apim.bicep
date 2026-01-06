@@ -72,9 +72,15 @@ module inference_api 'v2/inference-api.bicep' = {
   }
 }
 
+var apimSubscriptionLookup = filter(apim.outputs.apimSubscriptions, sub => sub.name == subscriptionName)
+
 output apimResourceId string = apim.outputs.id
 output apimName string = apim.outputs.name
 output inferenceApiId string = inference_api.outputs.apiId
 output inferenceApiName string = inference_api.outputs.apiName
 output subscriptionName string = subscriptionName
+output subscriptionValue string = empty(apimSubscriptionLookup) ? '' : first(apimSubscriptionLookup).key
 output apimPrincipalId string = apim.outputs.principalId
+output apimPrivateIp string = apim.outputs.apimPrivateIp
+output apimPublicIp string = apim.outputs.apimPublicIp
+output apiUrl string = '${apim.outputs.gatewayUrl}/${inference_api.outputs.apiPath}'

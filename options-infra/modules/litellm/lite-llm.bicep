@@ -300,11 +300,11 @@ module liteLlmApp '../aca/container-app.bicep' = {
   }
 }
 
-module liteLlmConnectionDynamic '../ai/connection-litellm-gateway.bicep' = {
+module liteLlmConnectionDynamic '../ai/connection-modelgateway-dynamic.bicep' = {
   name: 'lite-llm-connection-dynamic'
   params: {
     aiFoundryName: aiFoundryName
-    connectionName: 'modelgateway-litellm-${resourceToken}'
+    connectionName: 'model-gateway-litellm-${resourceToken}'
     apiKey: litelllmasterkey
     isSharedToAll: true
     gatewayName: 'litellm'
@@ -316,7 +316,7 @@ module liteLlmConnectionStatic '../ai/connection-modelgateway-static.bicep' = if
   name: 'lite-llm-connection-static'
   params: {
     aiFoundryName: aiFoundryName
-    connectionName: 'modelgateway-litellm-${resourceToken}-static'
+    connectionName: 'model- gateway-litellm-${resourceToken}-static'
     apiKey: litelllmasterkey
     isSharedToAll: true
     gatewayName: 'litellm'

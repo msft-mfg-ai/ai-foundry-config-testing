@@ -358,3 +358,4 @@ resource apiDiagnosticsAppInsights 'Microsoft.ApiManagement/service/apis/diagnos
 
 output apiId string = api.id
 output apiName string = api.name
+output apiPath string = api.properties.path

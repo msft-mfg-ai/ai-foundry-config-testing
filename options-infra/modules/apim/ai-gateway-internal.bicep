@@ -12,6 +12,10 @@ param staticModels ModelType[] = []
 param aiServicesConfig aiServiceConfigType[] = []
 param subnetResourceId string
 
+var subnetIdParts = split(subnetResourceId, '/')
+var subnetName = last(subnetIdParts)
+var vnetResourceId = substring(subnetResourceId, 0, length(subnetResourceId) - length('/subnets/${subnetName}'))
+
 module apim 'apim.bicep' = {
   name: 'apim-deployment'
   params: {
@@ -27,11 +31,20 @@ module apim 'apim.bicep' = {
   }
 }
 
+module apim_dns 'apim-dns.bicep' = {
+  name: 'apim-dns-configuration'
+  params: {
+    apimIpAddress: apim.outputs.apimPrivateIp
+    vnetResourceId: vnetResourceId
+    apimName: apim.outputs.apimName
+  }
+}
+
 module aiGatewayConnectionDynamic '../ai/connection-apim-gateway.bicep' = {
-  name: 'ai-gateway-connection-dynamic'
+  name: 'apim-connection-dynamic'
   params: {
     aiFoundryName: aiFoundryName
-    connectionName: 'aigateway-${resourceToken}-dynamic'
+    connectionName: 'apim-${resourceToken}-dynamic'
     apimResourceId: apim.outputs.apimResourceId
     apiName: apim.outputs.inferenceApiName
     apimSubscriptionName: apim.outputs.subscriptionName
@@ -44,16 +57,42 @@ module aiGatewayConnectionDynamic '../ai/connection-apim-gateway.bicep' = {
 }
 
 module aiGatewayConnectionStatic '../ai/connection-apim-gateway.bicep' = if (!empty(staticModels)) {
-  name: 'ai-gateway-connection-static'
+  name: 'apim-connection-static'
   params: {
     aiFoundryName: aiFoundryName
-    connectionName: 'aigateway-${resourceToken}-static'
+    connectionName: 'apim-${resourceToken}-static'
     apimResourceId: apim.outputs.apimResourceId
     apiName: apim.outputs.inferenceApiName
     apimSubscriptionName: apim.outputs.subscriptionName
     isSharedToAll: true
     staticModels: staticModels
     inferenceAPIVersion: '2025-03-01-preview'
+  }
+}
+
+module modelGatewayConnectionStatic '../ai/connection-modelgateway-static.bicep' = if (!empty(staticModels)) {
+  name: 'model-gateway-connection-static'
+  params: {
+    aiFoundryName: aiFoundryName
+    connectionName: 'model-gateway-${resourceToken}-static'
+    apiKey: apim.outputs.subscriptionValue
+    isSharedToAll: true
+    gatewayName: 'apim'
+    staticModels: staticModels
+    inferenceAPIVersion: '2025-03-01-preview'
+    targetUrl: apim.outputs.apiUrl
+  }
+}
+
+module modelGatewayConnectionDynamic '../ai/connection-modelgateway-dynamic.bicep' = {
+  name: 'model-gateway-connection-dynamic'
+  params: {
+    aiFoundryName: aiFoundryName
+    connectionName: 'model-gateway-${resourceToken}-dynamic'
+    apiKey: apim.outputs.subscriptionValue
+    isSharedToAll: true
+    gatewayName: 'apim'
+    targetUrl: apim.outputs.apiUrl
   }
 }
 

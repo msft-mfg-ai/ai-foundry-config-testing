@@ -188,6 +188,12 @@ output name string = apimService.name
 output principalId string = (apimManagedIdentityType == 'SystemAssigned') ? apimService.identity.principalId : ''
 output gatewayUrl string = apimService.properties.gatewayUrl
 output loggerId string = (length(lawId) > 0) ? apimLogger.id : ''
+output apimPrivateIp string = apimService.properties.privateIPAddresses != null && length(apimService.properties.privateIPAddresses) > 0
+  ? apimService.properties.privateIPAddresses[0]
+  : ''
+output apimPublicIp string = apimService.properties.publicIPAddresses != null && length(apimService.properties.publicIPAddresses) > 0
+  ? apimService.properties.publicIPAddresses[0]
+  : ''
 
 #disable-next-line outputs-should-not-contain-secrets
 output apimSubscriptions array = [for (subscription, i) in apimSubscriptionsConfig: {
