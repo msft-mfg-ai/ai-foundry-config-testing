@@ -74,6 +74,11 @@ param releaseChannel string = 'Default'
   'None'
 ])
 param virtualNetworkType string = 'None'
+@allowed([
+  'Enabled'
+  'Disabled'
+])
+param publicNetworkAccess string = 'Enabled'
 param subnetResourceId string?
 // ------------------
 //    TYPE DEFINITIONS
@@ -89,7 +94,6 @@ type subscriptionType = {
 // ------------------
 //    VARIABLES
 // ------------------
-
 
 // ------------------
 //    RESOURCES
@@ -111,6 +115,7 @@ resource apimService 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
     virtualNetworkConfiguration: empty(subnetResourceId) ? null : {
       subnetResourceId: subnetResourceId
     }
+    publicNetworkAccess: publicNetworkAccess
   }
   identity: {
     type: apimManagedIdentityType
@@ -121,7 +126,7 @@ resource apimService 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
   }
 }
 
-resource apimDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if(length(lawId) > 0) {
+resource apimDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (length(lawId) > 0) {
   scope: apimService
   name: 'apimDiagnosticSettings'
   properties: {
@@ -142,7 +147,7 @@ resource apimDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-0
   }
 }
 
-resource apimLogger 'Microsoft.ApiManagement/service/loggers@2024-06-01-preview' = if(length(lawId) > 0) {
+resource apimLogger 'Microsoft.ApiManagement/service/loggers@2024-06-01-preview' = if (length(lawId) > 0) {
   parent: apimService
   name: 'azuremonitor'
   properties: {
@@ -167,17 +172,18 @@ resource apimAppInsightsLogger 'Microsoft.ApiManagement/service/loggers@2021-12-
 }
 
 @batchSize(1)
-resource apimSubscription 'Microsoft.ApiManagement/service/subscriptions@2024-06-01-preview' = [for subscription in apimSubscriptionsConfig: if(length(apimSubscriptionsConfig) > 0) {
-  name: subscription.name
-  parent: apimService
-  properties: {
-    allowTracing: true
-    displayName: subscription.displayName
-    scope: '/apis'
-    state: 'active'
+resource apimSubscription 'Microsoft.ApiManagement/service/subscriptions@2024-06-01-preview' = [
+  for subscription in apimSubscriptionsConfig: if (length(apimSubscriptionsConfig) > 0) {
+    name: subscription.name
+    parent: apimService
+    properties: {
+      allowTracing: true
+      displayName: subscription.displayName
+      scope: '/apis'
+      state: 'active'
+    }
   }
-}]
-
+]
 
 // ------------------
 //    OUTPUTS
@@ -196,8 +202,10 @@ output apimPublicIp string = apimService.properties.publicIPAddresses != null &&
   : ''
 
 #disable-next-line outputs-should-not-contain-secrets
-output apimSubscriptions array = [for (subscription, i) in apimSubscriptionsConfig: {
-  name: subscription.name
-  displayName: subscription.displayName
-  key: apimSubscription[i].listSecrets().primaryKey
-}]
+output apimSubscriptions array = [
+  for (subscription, i) in apimSubscriptionsConfig: {
+    name: subscription.name
+    displayName: subscription.displayName
+    key: apimSubscription[i].listSecrets().primaryKey
+  }
+]

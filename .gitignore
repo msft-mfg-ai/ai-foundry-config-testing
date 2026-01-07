@@ -831,3 +831,4 @@ Thumbs.db
 
 # local params
 *.local.bicepparam
+agents_v2/gateway_connection_test_results.csv

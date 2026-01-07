@@ -10,6 +10,8 @@ param resourceToken string
 
 param staticModels ModelType[] = []
 param aiServicesConfig aiServiceConfigType[] = []
+param subnetResourceId string
+param peSubnetResourceId string
 
 module apim 'apim.bicep' = {
   name: 'apim-deployment'
@@ -20,7 +22,39 @@ module apim 'apim.bicep' = {
     appInsightsId: appInsightsId
     resourceSuffix: resourceToken
     aiServicesConfig: aiServicesConfig
+    apimSku: 'Standardv2'
+    virtualNetworkType: 'External'
+    subnetResourceId: subnetResourceId
+    // NotSupported: Blocking all public network access by setting property `publicNetworkAccess` of API Management service apim-xxxx is not enabled during service creation.
+    publicNetworkAccess: null
   }
+}
+
+module apim_pe 'apim-pe.bicep' = {
+  name: 'apim-pe-deployment'
+  params: {
+    apimName: apim.outputs.apimName
+    peSubnetResourceId: peSubnetResourceId
+  }
+}
+
+module apim_update 'apim.bicep' = {
+  name: 'apim-update-deployment'
+  params: {
+    location: location
+    logAnalyticsWorkspaceId: logAnalyticsWorkspaceId
+    appInsightsInstrumentationKey: appInsightsInstrumentationKey
+    appInsightsId: appInsightsId
+    resourceSuffix: resourceToken
+    aiServicesConfig: aiServicesConfig
+    apimSku: 'Standardv2'
+    virtualNetworkType: 'External'
+    subnetResourceId: subnetResourceId
+    // NotSupported: Blocking all public network access by setting property `publicNetworkAccess` of API Management service apim-xxxx is not enabled during service creation.
+    // Need to run this weird update step after PE is attached.
+    publicNetworkAccess: 'Disabled'
+  }
+  dependsOn: [apim_pe]
 }
 
 module aiGatewayConnectionDynamic '../ai/connection-apim-gateway.bicep' = {

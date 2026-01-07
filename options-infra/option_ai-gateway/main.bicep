@@ -98,6 +98,9 @@ module foundry '../modules/ai/ai-foundry.bicep' = if (empty(existingFoundryName)
   }
 }
 
+// This is required due to KeyVault issue resulting in Foundry deployment timeout
+// https://portal.microsofticm.com/imp/v5/incidents/details/21000000774829/summary - AKV Detach Bug
+// https://msdata.visualstudio.com/Vienna/_workitems/edit/4814146/
 module fake_foundry '../modules/ai/ai-foundry-fake.bicep' = if (!empty(existingFoundryName)) {
   name: 'fake-foundry-deployment-${resourceToken}'
   params: {

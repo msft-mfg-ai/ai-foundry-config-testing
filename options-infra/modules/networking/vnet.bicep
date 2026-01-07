@@ -31,6 +31,9 @@ param appGwSubnetName string = 'appgw-subnet'
 @description('The name of API Management subnet')
 param apimSubnetName string = 'apim-subnet'
 
+@description('The name of API Management v2 subnet')
+param apimv2SubnetName string = 'apim-v2-subnet'
+
 @description('Address space for the VNet')
 param vnetAddressPrefix string = ''
 
@@ -46,6 +49,8 @@ param peSubnetPrefix string = ''
 param appGwSubnetPrefix string = ''
 @description('Address prefix for the APIM subnet')
 param apimSubnetPrefix string = ''
+@description('Address prefix for the APIM subnet')
+param apimv2SubnetPrefix string = ''
 
 var defaultVnetAddressPrefix = '192.168.0.0/16'
 var vnetAddress = empty(vnetAddressPrefix) ? defaultVnetAddressPrefix : vnetAddressPrefix
@@ -53,6 +58,7 @@ var agentSubnet = empty(agentSubnetPrefix) ? cidrSubnet(vnetAddress, 24, 0) : ag
 var peSubnet = empty(peSubnetPrefix) ? cidrSubnet(vnetAddress, 24, 1) : peSubnetPrefix
 var appGwSubnet = empty(appGwSubnetPrefix) ? cidrSubnet(vnetAddress, 24, extraAgentSubnets + 3) : appGwSubnetPrefix
 var apimSubnet = empty(apimSubnetPrefix) ? cidrSubnet(vnetAddress, 24, extraAgentSubnets + 4) : apimSubnetPrefix
+var apimv2Subnet = empty(apimv2SubnetPrefix) ? cidrSubnet(vnetAddress, 24, extraAgentSubnets + 5) : apimv2SubnetPrefix
 
 // Temporary
 var laSubnet = empty(peSubnetPrefix) ? cidrSubnet(vnetAddress, 24, 2) : peSubnetPrefix
@@ -80,6 +86,43 @@ module networkSecurityGroup 'br/public:avm/res/network/network-security-group:0.
   name: 'networkSecurityGroupDeployment'
   params: {
     name: 'agent-nsg'
+  }
+}
+
+module apimv2SecurityGroup 'br/public:avm/res/network/network-security-group:0.5.2' = {
+  name: 'apimv2SecurityGroupDeployment'
+  params: {
+    name: 'apim-v2-nsg'
+    securityRules:[
+      {
+        name: 'AllowStorageOutbound'
+        properties: {
+          priority: 100
+          direction: 'Outbound'
+          access: 'Allow'
+          protocol: 'Tcp'
+          sourceAddressPrefix: 'VirtualNetwork'
+          sourcePortRange: '*'
+          destinationAddressPrefix: 'Storage'
+          destinationPortRange: '443'
+          description: 'Dependency on Azure Storage'
+        }
+      }
+      {
+        name: 'AllowKeyVaultOutbound'
+        properties: {
+          priority: 110
+          direction: 'Outbound'
+          access: 'Allow'
+          protocol: 'Tcp'
+          sourceAddressPrefix: 'VirtualNetwork'
+          sourcePortRange: '*'
+          destinationAddressPrefix: 'AzureKeyVault'
+          destinationPortRange: '443'
+          description: 'Dependency on Azure Key Vault'
+        }
+      }
+    ]
   }
 }
 
@@ -143,13 +186,30 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
           }
         }
       }
-            {
+      {
         name: apimSubnetName
         properties: {
           addressPrefix: apimSubnet
           networkSecurityGroup: {
             id: apimSecurityGroup.outputs.networkSecurityGroupResourceId
           }
+        }
+      }
+      {
+        name: apimv2SubnetName
+        properties: {
+          addressPrefix: apimv2Subnet
+          networkSecurityGroup: {
+            id: apimv2SecurityGroup.outputs.resourceId
+          }
+          delegations: [
+            {
+              name: 'Microsoft.Web/serverfarms'
+              properties: {
+                serviceName: 'Microsoft.Web/serverfarms'
+              }
+            }
+          ]
         }
       }
       {
@@ -177,11 +237,13 @@ output peSubnetName string = peSubnetName
 output agentSubnetName string = agentSubnetName
 output appGwSubnetName string = appGwSubnetName
 output apimSubnetName string = apimSubnetName
+output apimv2SubnetName string = apimv2SubnetName
 
 output agentSubnetId string = '${virtualNetwork.id}/subnets/${agentSubnetName}'
 output peSubnetId string = '${virtualNetwork.id}/subnets/${peSubnetName}'
 output appGwSubnetId string = '${virtualNetwork.id}/subnets/${appGwSubnetName}'
 output apimSubnetId string = '${virtualNetwork.id}/subnets/${apimSubnetName}'
+output apimv2SubnetId string = '${virtualNetwork.id}/subnets/${apimv2SubnetName}'
 
 output virtualNetworkName string = virtualNetwork.name
 output virtualNetworkId string = virtualNetwork.id

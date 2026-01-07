@@ -31,6 +31,11 @@ param subnetResourceId string?
   'Premium'
 ])
 param apimSku string = 'Basicv2'
+@allowed([
+  'Enabled'
+  'Disabled'
+])
+param publicNetworkAccess string = 'Enabled'
 
 module apim 'v2/apim.bicep' = {
   name: 'apim-v2'
@@ -46,6 +51,7 @@ module apim 'v2/apim.bicep' = {
     apimSku: apimSku
     virtualNetworkType: virtualNetworkType
     subnetResourceId: subnetResourceId
+    publicNetworkAccess: publicNetworkAccess
   }
 }
 

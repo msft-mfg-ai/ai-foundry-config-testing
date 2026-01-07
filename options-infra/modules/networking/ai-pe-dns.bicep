@@ -1,5 +1,7 @@
 import * as types from '../types/types.bicep'
 
+param location string = resourceGroup().location
+
 @description('Name of the AI Foundry account')
 param aiAccountName string
 param aiAccountNameResourceGroup string = resourceGroup().name
@@ -112,7 +114,7 @@ resource cognitiveServicesLink 'Microsoft.Network/privateDnsZones/virtualNetwork
 // - Establishes private connection to AI Services account
 resource aiAccountPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = if (!empty(aiAccountName)) {
   name: '${aiAccountName}-private-endpoint'
-  location: resourceGroup().location
+  location: location
   properties: {
     subnet: { id: peSubnetId } // Deploy in customer hub subnet
     privateLinkServiceConnections: [

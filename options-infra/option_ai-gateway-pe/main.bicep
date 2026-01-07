@@ -41,6 +41,7 @@ module vnet '../modules/networking/vnet.bicep' = {
   }
 }
 
+
 module ai_dependencies '../modules/ai/ai-dependencies-with-dns.bicep' = {
   name: 'ai-dependencies-with-dns'
   params: {
@@ -129,6 +130,8 @@ module fake_foundry '../modules/ai/ai-foundry-fake.bicep' = if (!empty(existingF
   }
 }
 
+
+
 module identities '../modules/iam/identity.bicep' = [
   for i in range(1, projectsCount): {
     name: 'ai-project-${i}-identity-${resourceToken}'
@@ -156,13 +159,14 @@ module projects '../modules/ai/ai-project-with-caphost.bicep' = [
   }
 ]
 
-module ai_gateway '../modules/apim/ai-gateway-internal.bicep' = {
+module ai_gateway '../modules/apim/ai-gateway-pe.bicep' = {
   name: 'ai-gateway-deployment-${resourceToken}'
   params: {
     location: location
     resourceToken: resourceToken
     aiFoundryName: foundryName
-    subnetResourceId: vnet.outputs.apimSubnetId
+    subnetResourceId: vnet.outputs.apimv2SubnetId
+    peSubnetResourceId: vnet.outputs.peSubnetId
     logAnalyticsWorkspaceId: logAnalytics.outputs.logAnalyticsWorkspaceId
     appInsightsId: logAnalytics.outputs.applicationInsightsId
     appInsightsInstrumentationKey: logAnalytics.outputs.appInsightsInstrumentationKey

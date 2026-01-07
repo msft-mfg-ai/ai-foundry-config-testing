@@ -81,6 +81,7 @@ module modelGatewayConnectionStatic '../ai/connection-modelgateway-static.bicep'
     staticModels: staticModels
     inferenceAPIVersion: '2025-03-01-preview'
     targetUrl: apim.outputs.apiUrl
+    deploymentInPath: 'true'
   }
 }
 
@@ -93,6 +94,11 @@ module modelGatewayConnectionDynamic '../ai/connection-modelgateway-dynamic.bice
     isSharedToAll: true
     gatewayName: 'apim'
     targetUrl: apim.outputs.apiUrl
+    listModelsEndpoint: '/deployments'
+    getModelEndpoint: '/deployments/{deploymentName}'
+    deploymentProvider: 'AzureOpenAI'
+    inferenceAPIVersion: '2025-03-01-preview'
+    deploymentInPath: 'true'
   }
 }
 
