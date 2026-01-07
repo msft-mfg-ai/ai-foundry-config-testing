@@ -3,7 +3,7 @@
 targetScope = 'resourceGroup'
 
 param location string = resourceGroup().location
-
+param dependencyLocation string = 'eastus2'
 
 var resourceToken = toLower(uniqueString(resourceGroup().id, location))
 
@@ -22,12 +22,12 @@ module vnet './modules/networking/vnet.bicep' = {
 module ai_dependencies './modules/ai/ai-dependencies-with-dns.bicep' = {
   name: 'ai-dependencies-with-dns'
   params: {
-    peSubnetName: vnet.outputs.peSubnetName
-    vnetResourceId: vnet.outputs.virtualNetworkId
+    peSubnetName: vnet.outputs.VIRTUAL_NETWORK_SUBNETS.peSubnet.name
+    vnetResourceId: vnet.outputs.VIRTUAL_NETWORK_RESOURCE_ID
     resourceToken: resourceToken
     aiServicesName: '' // create AI serviced PE later
     aiAccountNameResourceGroupName: ''
-    location: 'eastus2'
+    location: dependencyLocation
   }
 }
 
@@ -46,11 +46,11 @@ module logAnalytics './modules/monitor/loganalytics.bicep' = {
 module foundry './modules/ai/ai-foundry.bicep' = {
   name: 'foundry-deployment'
   params: {
-    managedIdentityId: '' // Use System Assigned Identity
+    managedIdentityResourceId: null // Use System Assigned Identity
     name: 'ai-foundry-${resourceToken}'
     location: location
     publicNetworkAccess: 'Enabled'
-    agentSubnetId: vnet.outputs.agentSubnetId // Use the first agent subnet
+    agentSubnetResourceId: vnet.outputs.VIRTUAL_NETWORK_SUBNETS.agentSubnet.resourceId // Use the first agent subnet
     deployments: [
 
     ]
@@ -60,14 +60,12 @@ module foundry './modules/ai/ai-foundry.bicep' = {
 module project1 './modules/ai/ai-project-with-caphost.bicep' = {
   name: 'ai-project-1-with-caphost-${resourceToken}'
   params: {
-    foundryName: foundry.outputs.name
+    foundryName: foundry.outputs.FOUNDRY_NAME
     location: location
     projectId: 1
-    aiDependencies: ai_dependencies.outputs.aiDependencies
-    appInsightsId: logAnalytics.outputs.applicationInsightsId
+    aiDependencies: ai_dependencies.outputs.AI_DEPENDECIES
+    appInsightsResourceId: logAnalytics.outputs.APPLICATION_INSIGHTS_RESOURCE_ID
   }
 }
 
-output capability1HostUrl string = project1.outputs.capabilityHostUrl
-output ai1ConnectionUrl string = project1.outputs.aiConnectionUrl
-output foundry1_connection_string string = project1.outputs.foundry_connection_string
+output FOUNDRY_PROJECT_CONNECTION_STRING string = project1.outputs.FOUNDRY_PROJECT_CONNECTION_STRING

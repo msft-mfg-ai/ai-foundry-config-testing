@@ -243,22 +243,58 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
     ])
   }
 }
+
+var extraAgentSubnetsArray SubnetInfoType[] = [for name in extraAgentSubnetNames: {
+  name: name
+  resourceId: '${virtualNetwork.id}/subnets/${name}'
+}]
+
 // Output variables
-output peSubnetName string = peSubnetName
-output agentSubnetName string = agentSubnetName
-output appGwSubnetName string = appGwSubnetName
-output apimSubnetName string = apimSubnetName
-output apimv2SubnetName string = apimv2SubnetName
+type SubnetInfoType = {
+  name: string
+  resourceId: string
+}
+type SubnetsType = {
+  @description('The Agents Subnet information')
+  agentSubnet: SubnetInfoType
+  @description('The Private Endpoint Subnet information')
+  peSubnet: SubnetInfoType
+  @description('The Application Gateway Subnet information')
+  appGwSubnet: SubnetInfoType
+  @description('The API Management V1 SKUs Subnet information (no NSG)')
+  apimSubnet: SubnetInfoType
+  @description('The API Management V2 SKUs Subnet information')
+  apimv2Subnet: SubnetInfoType
+  @description('Additional Agent Subnets information')
+  extraAgentSubnets: SubnetInfoType[]
+}
 
-output agentSubnetId string = '${virtualNetwork.id}/subnets/${agentSubnetName}'
-output peSubnetId string = '${virtualNetwork.id}/subnets/${peSubnetName}'
-output appGwSubnetId string = '${virtualNetwork.id}/subnets/${appGwSubnetName}'
-output apimSubnetId string = '${virtualNetwork.id}/subnets/${apimSubnetName}'
-output apimv2SubnetId string = '${virtualNetwork.id}/subnets/${apimv2SubnetName}'
+output VIRTUAL_NETWORK_SUBNETS SubnetsType = {
+  agentSubnet: {
+    name: agentSubnetName
+    resourceId: '${virtualNetwork.id}/subnets/${agentSubnetName}'
+  }
+  peSubnet: {
+    name: peSubnetName
+    resourceId: '${virtualNetwork.id}/subnets/${peSubnetName}'
+  }
+  appGwSubnet: {
+    name: appGwSubnetName
+    resourceId: '${virtualNetwork.id}/subnets/${appGwSubnetName}'
+  }
+  apimSubnet: {
+    name: apimSubnetName
+    resourceId: '${virtualNetwork.id}/subnets/${apimSubnetName}'
+  }
+  apimv2Subnet: {
+    name: apimv2SubnetName
+    resourceId: '${virtualNetwork.id}/subnets/${apimv2SubnetName}'
+  }
+  extraAgentSubnets: extraAgentSubnetsArray
+}
 
-output virtualNetworkName string = virtualNetwork.name
-output virtualNetworkId string = virtualNetwork.id
-output virtualNetworkResourceGroup string = resourceGroup().name
-output virtualNetworkSubscriptionId string = subscription().subscriptionId
-output extraAgentSubnetNames array = extraAgentSubnetNames
-output extraAgentSubnetIds array = [for name in extraAgentSubnetNames: '${virtualNetwork.id}/subnets/${name}']
+output VIRTUAL_NETWORK_NAME string = virtualNetwork.name
+output VIRTUAL_NETWORK_RESOURCE_ID string = virtualNetwork.id
+output VIRTUAL_NETWORK_RESOURCE_GROUP string = resourceGroup().name
+output VIRTUAL_NETWORK_SUBSCRIPTION_ID string = subscription().subscriptionId
+

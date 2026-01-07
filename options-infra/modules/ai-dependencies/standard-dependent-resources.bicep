@@ -173,23 +173,23 @@ var cosmosDBResourceGroupName string = cosmosDBExists ? cosmosParts[4] : resourc
 var cosmosDBSubscriptionId string = cosmosDBExists ? cosmosParts[2] : subscription().subscriptionId
 
 
-output dependecies_are_valid bool = aiSearchIsValid && storageIsValid && cosmosIsValid
-output aiSearchName string = aiSearchNameFinal
-output aiSearchID string = aiSearchID
-output aiSearchServiceResourceGroupName string = aiSearchServiceResourceGroupName
-output aiSearchServiceSubscriptionId string = aiSearchServiceSubscriptionId
+output AI_DEPENDENCIES_VALID bool = aiSearchIsValid && storageIsValid && cosmosIsValid
+output AI_SEARCH_NAME string = aiSearchNameFinal
+output AI_SEARCH_RESOURCE_ID string = aiSearchID
+output AI_SEARCH_RESOURCE_GROUP_NAME string = aiSearchServiceResourceGroupName
+output AI_SEARCH_SUBSCRIPTION_ID string = aiSearchServiceSubscriptionId
 
-output azureStorageName string = azureStorageNameFinal
-output azureStorageId string = azureStorageId
-output azureStorageResourceGroupName string =azureStorageResourceGroupName
-output azureStorageSubscriptionId string = azureStorageSubscriptionId
+output STORAGE_NAME string = azureStorageNameFinal
+output STORAGE_RESOURCE_ID string = azureStorageId
+output STORAGE_RESOURCE_GROUP_NAME string =azureStorageResourceGroupName
+output STORAGE_SUBSCRIPTION_ID string = azureStorageSubscriptionId
 
-output cosmosDBName string = cosmosDBNameFinal
-output cosmosDBId string = cosmosDBId
-output cosmosDBResourceGroupName string = cosmosDBResourceGroupName
-output cosmosDBSubscriptionId string = cosmosDBSubscriptionId
+output COSMOS_DB_NAME string = cosmosDBNameFinal
+output COSMOS_DB_RESOURCE_ID string = cosmosDBId
+output COSMOS_DB_RESOURCE_GROUP_NAME string = cosmosDBResourceGroupName
+output COSMOS_DB_SUBSCRIPTION_ID string = cosmosDBSubscriptionId
 
-output aiDependencies types.aiDependenciesType = {
+output AI_DEPENDENCIES types.aiDependenciesType = {
   aiSearch: {
     name: aiSearchNameFinal
     resourceId: aiSearchID

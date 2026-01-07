@@ -1,10 +1,12 @@
+// Dummy resource which acts like TF state file - it returns properties of an existing AI Foundry account
+
 param existing_Foundry_Name string = ''
 param existing_Foundry_RG_Name string = resourceGroup().name
 param existing_Foundry_SubId string = subscription().subscriptionId
 param name string = ''
 param location string = resourceGroup().location
 param tags object = {}
-param agentSubnetId string = ''
+param agentSubnetResourceId string = ''
 @allowed([
   'Disabled'
   'Enabled'
@@ -26,7 +28,6 @@ param keyVaultConnectionEnabled bool = false
 // Variables
 // --------------------------------------------------------------------------------------------------------------
 var useExistingService = !empty(existing_Foundry_Name)
-var cognitiveServicesKeySecretName = 'cognitive-services-key'
 param gpt41Deployment aiModelTDeploymentType?
 param deployments aiModelTDeploymentType[] = []
 
@@ -62,13 +63,12 @@ resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-p
 // --------------------------------------------------------------------------------------------------------------
 // Outputs
 // --------------------------------------------------------------------------------------------------------------
-output id string = '/subscriptions/${existing_Foundry_SubId}/resourceGroups/${existing_Foundry_RG_Name}/providers/Microsoft.CognitiveServices/accounts/${existing_Foundry_Name}'
-@description('The name of Foundry Account')
-output name string = existing_Foundry_Name
-output endpoint string = 'https://${existing_Foundry_Name}.services.ai.azure.com/'
-output resourceGroupName string = existing_Foundry_RG_Name
-output subscriptionId string =existing_Foundry_SubId
-output cognitiveServicesKeySecretName string = cognitiveServicesKeySecretName
+output FOUNDRY_RESOURCE_ID string = '/subscriptions/${existing_Foundry_SubId}/resourceGroups/${existing_Foundry_RG_Name}/providers/Microsoft.CognitiveServices/accounts/${existing_Foundry_Name}'
+@description('The name of the Foundry Account')
+output FOUNDRY_NAME string = existing_Foundry_Name
+output FOUNDRY_ENDPOINT string = 'https://${existing_Foundry_Name}.services.ai.azure.com/'
+output FOUNDRY_RESOURCE_GROUP_NAME string = existing_Foundry_RG_Name
+output FOUNDRY_SUBSCRIPTION_ID string =existing_Foundry_SubId
+output FOUNDRY_PRINCIPAL_ID string = identity.properties.principalId
 
-output accountPrincipalId string = identity.properties.principalId
 output is_fake_foundry_valid bool = empty(existing_Foundry_Name) || empty(managedIdentityId) ? fail('For fake Foundry, both existing_Foundry_Name and managedIdentityId must be provided') : true

@@ -4,7 +4,7 @@ param existing_Foundry_SubId string = subscription().subscriptionId
 param name string = ''
 param location string = resourceGroup().location
 param tags object = {}
-param agentSubnetId string = ''
+param agentSubnetResourceId string = ''
 @allowed([
   'Disabled'
   'Enabled'
@@ -16,7 +16,7 @@ param sku object = {
 }
 @description('Provide the IP address to allow access to the Azure Container Registry')
 param myIpAddress string = ''
-param managedIdentityId string = ''
+param managedIdentityResourceId string?
 
 // Keyvault integration
 param keyVaultResourceId string?
@@ -27,8 +27,6 @@ param keyVaultConnectionEnabled bool = false
 // Variables
 // --------------------------------------------------------------------------------------------------------------
 var useExistingService = !empty(existing_Foundry_Name)
-var cognitiveServicesKeySecretName = 'cognitive-services-key'
-param gpt41Deployment aiModelTDeploymentType?
 param deployments aiModelTDeploymentType[] = []
 
 @export()
@@ -52,7 +50,7 @@ type aiModelTDeploymentType = {
 
 // --------------------------------------------------------------------------------------------------------------
 // split managed identity resource ID to get the name
-var identityParts = split(managedIdentityId, '/')
+var identityParts = split(managedIdentityResourceId ?? '', '/')
 // get the name of the managed identity
 var managedIdentityName = length(identityParts) > 0 ? identityParts[length(identityParts) - 1] : ''
 
@@ -73,11 +71,11 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = if 
   location: location
   tags: tags
   kind: 'AIServices'
-  identity: !empty(managedIdentityId)
+  identity: !empty(managedIdentityResourceId)
     ? {
         type: 'UserAssigned'
         userAssignedIdentities: {
-          '${managedIdentityId}': {}
+          '${managedIdentityResourceId}': {}
         }
       }
     : {
@@ -100,11 +98,11 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = if 
           ]
       virtualNetworkRules: []
     }
-    networkInjections: (!empty(agentSubnetId)
+    networkInjections: (!empty(agentSubnetResourceId)
       ? [
           {
             scenario: 'agent'
-            subnetArmId: agentSubnetId
+            subnetArmId: agentSubnetResourceId
             useMicrosoftManagedNetwork: false
           }
         ]
@@ -116,7 +114,7 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = if 
 
 @batchSize(1)
 resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = [
-  for deployment in union(deployments, empty(gpt41Deployment) ? [] : [gpt41Deployment]): if (!useExistingService) {
+  for deployment in deployments: if (!useExistingService) {
     parent: account
     name: deployment.name
     properties: deployment.properties
@@ -179,20 +177,18 @@ module kvRoleAssignment '../kv/kv-role-assignment.bicep' = if (addKeyVault && !u
   name: 'kv-role-assignment-${name}'
   params: {
     keyVaultName: keyVaultName!
-    principalId: empty(managedIdentityId) ? account.?identity.principalId ?? '' : identity.properties.principalId
+    principalId: empty(managedIdentityResourceId) ? account.?identity.principalId ?? '' : identity.properties.principalId
   }
 }
 // --------------------------------------------------------------------------------------------------------------
 // Outputs
 // --------------------------------------------------------------------------------------------------------------
-output id string = useExistingService ? existingAccount.id : account.id
-@description('The name of Foundry Account')
-output name string = useExistingService ? existingAccount.name : account.name
-output endpoint string = useExistingService ? existingAccount!.properties.endpoint : account!.properties.endpoint
-output resourceGroupName string = useExistingService ? existing_Foundry_RG_Name : resourceGroup().name
-output subscriptionId string = useExistingService ? existing_Foundry_SubId : subscription().subscriptionId
-output cognitiveServicesKeySecretName string = cognitiveServicesKeySecretName
-
-output accountPrincipalId string = empty(managedIdentityId)
+output FOUNDRY_RESOURCE_ID string = useExistingService ? existingAccount.id : account.id
+@description('The name of the Foundry Account')
+output FOUNDRY_NAME string = useExistingService ? existingAccount.name : account.name
+output FOUNDRY_ENDPOINT string = useExistingService ? existingAccount!.properties.endpoint : account!.properties.endpoint
+output FOUNDRY_RESOURCE_GROUP_NAME string = useExistingService ? existing_Foundry_RG_Name : resourceGroup().name
+output FOUNDRY_SUBSCRIPTION_ID string = useExistingService ? existing_Foundry_SubId : subscription().subscriptionId
+output FOUNDRY_PRINCIPAL_ID string = empty(managedIdentityResourceId)
   ? (useExistingService ? (existingAccount.?identity.principalId ?? '') : account.?identity.principalId ?? '')
   : (useExistingService ? '' : identity!.properties.principalId)

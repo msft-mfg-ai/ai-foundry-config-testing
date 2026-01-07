@@ -3,9 +3,9 @@ import { ModelType } from '../ai/connection-apim-gateway.bicep'
 
 param location string = resourceGroup().location
 param tags object = {}
-param logAnalyticsWorkspaceId string
+param logAnalyticsWorkspaceResourceId string
 param appInsightsInstrumentationKey string = ''
-param appInsightsId string = ''
+param appInsightsResourceId string = ''
 param aiFoundryName string
 param resourceToken string
 
@@ -17,9 +17,9 @@ module apim 'apim.bicep' = {
   params: {
     tags: tags
     location: location
-    logAnalyticsWorkspaceId: logAnalyticsWorkspaceId
+    logAnalyticsWorkspaceId: logAnalyticsWorkspaceResourceId
     appInsightsInstrumentationKey: appInsightsInstrumentationKey
-    appInsightsId: appInsightsId
+    appInsightsId: appInsightsResourceId
     resourceSuffix: resourceToken
     aiServicesConfig: aiServicesConfig
   }

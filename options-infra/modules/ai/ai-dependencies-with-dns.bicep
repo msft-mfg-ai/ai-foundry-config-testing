@@ -55,42 +55,52 @@ module privateEndpointAndDNS '../networking/private-endpoint-and-dns.bicep' = {
     tags: tags
     aiAccountName: aiServicesName // AI Services to secure
     aiAccountNameResourceGroup: aiAccountNameResourceGroupName
-    aiSearchName: ai_dependencies.outputs.aiSearchName // AI Search to secure
-    storageName: ai_dependencies.outputs.azureStorageName // Storage to secure
-    cosmosDBName: ai_dependencies.outputs.cosmosDBName
+    #disable-next-line what-if-short-circuiting
+    aiSearchName: ai_dependencies.outputs.AI_SEARCH_NAME // AI Search to secure
+    #disable-next-line what-if-short-circuiting
+    storageName: ai_dependencies.outputs.STORAGE_NAME // Storage to secure
+    #disable-next-line what-if-short-circuiting
+    cosmosDBName: ai_dependencies.outputs.COSMOS_DB_NAME
     vnetName: vnetName // VNet containing subnets
     peSubnetName: peSubnetName // Subnet for private endpoints
     suffix: resourceToken // Unique identifier
     vnetResourceGroupName: vnetResourceGroupName // Resource Group for the VNet
     vnetSubscriptionId: vnetSubscriptionId // Subscription ID for the VNet
-    cosmosDBSubscriptionId: ai_dependencies.outputs.cosmosDBSubscriptionId // Subscription ID for Cosmos DB
-    cosmosDBResourceGroupName: ai_dependencies.outputs.cosmosDBResourceGroupName // Resource Group for Cosmos DB
-    aiSearchSubscriptionId: ai_dependencies.outputs.aiSearchServiceSubscriptionId // Subscription ID for AI Search Service
-    aiSearchResourceGroupName: ai_dependencies.outputs.aiSearchServiceResourceGroupName // Resource Group for AI Search Service
-    storageAccountResourceGroupName: ai_dependencies.outputs.azureStorageResourceGroupName // Resource Group for Storage Account
-    storageAccountSubscriptionId: ai_dependencies.outputs.azureStorageSubscriptionId // Subscription ID for Storage Account
+    #disable-next-line what-if-short-circuiting
+    cosmosDBSubscriptionId: ai_dependencies.outputs.COSMOS_DB_SUBSCRIPTION_ID // Subscription ID for Cosmos DB
+    #disable-next-line what-if-short-circuiting
+    cosmosDBResourceGroupName: ai_dependencies.outputs.COSMOS_DB_RESOURCE_GROUP_NAME // Resource Group for Cosmos DB
+    #disable-next-line what-if-short-circuiting
+    aiSearchSubscriptionId: ai_dependencies.outputs.AI_SEARCH_SUBSCRIPTION_ID // Subscription ID for AI Search Service
+    #disable-next-line what-if-short-circuiting
+    aiSearchResourceGroupName: ai_dependencies.outputs.AI_SEARCH_RESOURCE_GROUP_NAME // Resource Group for AI Search Service
+    #disable-next-line what-if-short-circuiting
+    storageAccountResourceGroupName: ai_dependencies.outputs.STORAGE_RESOURCE_GROUP_NAME // Resource Group for Storage Account
+    #disable-next-line what-if-short-circuiting
+    storageAccountSubscriptionId: ai_dependencies.outputs.STORAGE_SUBSCRIPTION_ID // Subscription ID for Storage Account
   }
 }
 
-output DNSZones types.DnsZonesType = privateEndpointAndDNS.outputs.DNSZones
-output aiDependencies types.aiDependenciesType = {
+output DNS_ZONES types.DnsZonesType = privateEndpointAndDNS.outputs.DNSZones
+@description('AI Dependencies (search, storage, cosmos) output including resource details')
+output AI_DEPENDECIES types.aiDependenciesType = {
   aiSearch: {
-    name: ai_dependencies.outputs.aiSearchName
-    resourceId: ai_dependencies.outputs.aiSearchID
-    resourceGroupName: ai_dependencies.outputs.aiSearchServiceResourceGroupName
-    subscriptionId: ai_dependencies.outputs.aiSearchServiceSubscriptionId
+    name: ai_dependencies.outputs.AI_SEARCH_NAME
+    resourceId: ai_dependencies.outputs.AI_SEARCH_RESOURCE_ID
+    resourceGroupName: ai_dependencies.outputs.AI_SEARCH_RESOURCE_GROUP_NAME
+    subscriptionId: ai_dependencies.outputs.AI_SEARCH_SUBSCRIPTION_ID
   }
   azureStorage: {
-    name: ai_dependencies.outputs.azureStorageName
-    resourceId: ai_dependencies.outputs.azureStorageId
-    resourceGroupName: ai_dependencies.outputs.azureStorageResourceGroupName
-    subscriptionId: ai_dependencies.outputs.azureStorageSubscriptionId
+    name: ai_dependencies.outputs.STORAGE_NAME
+    resourceId: ai_dependencies.outputs.STORAGE_RESOURCE_ID
+    resourceGroupName: ai_dependencies.outputs.STORAGE_RESOURCE_GROUP_NAME
+    subscriptionId: ai_dependencies.outputs.STORAGE_SUBSCRIPTION_ID
   }
   cosmosDB: {
-    name: ai_dependencies.outputs.cosmosDBName
-    resourceId: ai_dependencies.outputs.cosmosDBId
-    resourceGroupName: ai_dependencies.outputs.cosmosDBResourceGroupName
-    subscriptionId: ai_dependencies.outputs.cosmosDBSubscriptionId
+    name: ai_dependencies.outputs.COSMOS_DB_NAME
+    resourceId: ai_dependencies.outputs.COSMOS_DB_RESOURCE_ID
+    resourceGroupName: ai_dependencies.outputs.COSMOS_DB_RESOURCE_GROUP_NAME
+    subscriptionId: ai_dependencies.outputs.COSMOS_DB_SUBSCRIPTION_ID
   }
 }
 

@@ -44,8 +44,8 @@ module vnet '../modules/networking/vnet.bicep' = {
 module ai_dependencies '../modules/ai/ai-dependencies-with-dns.bicep' = {
   name: 'ai-dependencies-with-dns'
   params: {
-    peSubnetName: vnet.outputs.peSubnetName
-    vnetResourceId: vnet.outputs.virtualNetworkId
+    peSubnetName: vnet.outputs.VIRTUAL_NETWORK_SUBNETS.peSubnet.name
+    vnetResourceId: vnet.outputs.VIRTUAL_NETWORK_RESOURCE_ID
     resourceToken: resourceToken
     aiServicesName: '' // create AI serviced PE later
     aiAccountNameResourceGroupName: ''
@@ -59,9 +59,9 @@ module openai_private_endpoint '../modules/networking/ai-pe-dns.bicep' = {
     aiAccountName: openAiName
     aiAccountNameResourceGroup: openAiResourceGroupName
     aiAccountSubscriptionId: openAiSubscriptionId
-    peSubnetId: vnet.outputs.peSubnetId
+    peSubnetId: vnet.outputs.VIRTUAL_NETWORK_SUBNETS.peSubnet.resourceId
     resourceToken: resourceToken
-    existingDnsZones: ai_dependencies.outputs.DNSZones
+    existingDnsZones: ai_dependencies.outputs.DNS_ZONES
   }
 }
 
@@ -83,14 +83,14 @@ module keyVault '../modules/kv/key-vault.bicep' = {
     tags: {}
     location: location
     name: take('kv-foundry-${resourceToken}', 24)
-    logAnalyticsWorkspaceId: logAnalytics.outputs.logAnalyticsWorkspaceId
+    logAnalyticsWorkspaceId: logAnalytics.outputs.LOG_ANALYTICS_WORKSPACE_RESOURCE_ID
     doRoleAssignments: true
     secrets: []
 
     publicAccessEnabled: false
-    privateEndpointSubnetId: vnet.outputs.peSubnetId
+    privateEndpointSubnetId: vnet.outputs.VIRTUAL_NETWORK_SUBNETS.peSubnet.resourceId
     privateEndpointName: 'pe-kv-foundry-${resourceToken}'
-    privateDnsZoneResourceId: ai_dependencies.outputs.DNSZones['privatelink.vaultcore.azure.net']!.resourceId
+    privateDnsZoneResourceId: ai_dependencies.outputs.DNS_ZONES['privatelink.vaultcore.azure.net']!.resourceId
   }
 }
 
@@ -99,13 +99,13 @@ var foundryName = existingFoundryName ?? 'ai-foundry-${resourceToken}'
 module foundry '../modules/ai/ai-foundry.bicep' = if (empty(existingFoundryName)) {
   name: 'foundry-deployment-${resourceToken}'
   params: {
-    managedIdentityId: foundry_identity.outputs.managedIdentityId
+    managedIdentityResourceId: foundry_identity.outputs.MANAGED_IDENTITY_RESOURCE_ID
     name: foundryName
     location: location
     publicNetworkAccess: 'Enabled'
-    agentSubnetId: vnet.outputs.agentSubnetId // Use the first agent subnet
+    agentSubnetResourceId: vnet.outputs.VIRTUAL_NETWORK_SUBNETS.agentSubnet.resourceId // Use the first agent subnet
     deployments: [] // no models
-    keyVaultResourceId: keyVault.outputs.AZURE_RESOURCE_KEY_VAULT_ID
+    keyVaultResourceId: keyVault.outputs.KEY_VAULT_RESOURCE_ID
     keyVaultConnectionEnabled: true
     existing_Foundry_Name: existingFoundryName
   }
@@ -117,13 +117,13 @@ module foundry '../modules/ai/ai-foundry.bicep' = if (empty(existingFoundryName)
 module fake_foundry '../modules/ai/ai-foundry-fake.bicep' = if (!empty(existingFoundryName)) {
   name: 'fake-foundry-deployment-${resourceToken}'
   params: {
-    managedIdentityId: foundry_identity.outputs.managedIdentityId
+    managedIdentityId: foundry_identity.outputs.MANAGED_IDENTITY_RESOURCE_ID
     name: foundryName
     location: location
     publicNetworkAccess: 'Enabled'
-    agentSubnetId: vnet.outputs.agentSubnetId // Use the first agent subnet
+    agentSubnetResourceId: vnet.outputs.VIRTUAL_NETWORK_SUBNETS.agentSubnet.resourceId // Use the first agent subnet
     deployments: [] // no models
-    keyVaultResourceId: keyVault.outputs.AZURE_RESOURCE_KEY_VAULT_ID
+    keyVaultResourceId: keyVault.outputs.KEY_VAULT_RESOURCE_ID
     keyVaultConnectionEnabled: true
     existing_Foundry_Name: existingFoundryName
   }
@@ -147,10 +147,10 @@ module projects '../modules/ai/ai-project-with-caphost.bicep' = [
       foundryName: foundryName
       location: location
       projectId: i
-      aiDependencies: ai_dependencies.outputs.aiDependencies
+      aiDependencies: ai_dependencies.outputs.AI_DEPENDECIES
       existingAiResourceId: null
-      managedIdentityId: identities[i - 1].outputs.managedIdentityId
-      appInsightsId: logAnalytics.outputs.applicationInsightsId
+      managedIdentityResourceId: identities[i - 1].outputs.MANAGED_IDENTITY_RESOURCE_ID
+      appInsightsResourceId: logAnalytics.outputs.APPLICATION_INSIGHTS_RESOURCE_ID
     }
     dependsOn: [foundry ?? fake_foundry]
   }
@@ -162,10 +162,10 @@ module ai_gateway '../modules/apim/ai-gateway-internal.bicep' = {
     location: location
     resourceToken: resourceToken
     aiFoundryName: foundryName
-    subnetResourceId: vnet.outputs.apimSubnetId
-    logAnalyticsWorkspaceId: logAnalytics.outputs.logAnalyticsWorkspaceId
-    appInsightsId: logAnalytics.outputs.applicationInsightsId
-    appInsightsInstrumentationKey: logAnalytics.outputs.appInsightsInstrumentationKey
+    subnetResourceId: vnet.outputs.VIRTUAL_NETWORK_SUBNETS.apimSubnet.resourceId
+    logAnalyticsWorkspaceId: logAnalytics.outputs.LOG_ANALYTICS_WORKSPACE_RESOURCE_ID
+    appInsightsId: logAnalytics.outputs.APPLICATION_INSIGHTS_RESOURCE_ID
+    appInsightsInstrumentationKey: logAnalytics.outputs.APPLICATION_INSIGHTS_INSTRUMENTATION_KEY
     staticModels: [
       {
         name: 'gpt-4.1-mini'
@@ -220,7 +220,7 @@ module apim_role_assignment '../modules/iam/role-assignment-cognitiveServices.bi
   }
 }
 
-output project_connection_strings string[] = [for i in range(1, projectsCount): projects[i - 1].outputs.aiConnectionUrl]
-output project_names string[] = [for i in range(1, projectsCount): projects[i - 1].outputs.projectName]
+output project_connection_strings string[] = [for i in range(1, projectsCount): projects[i - 1].outputs.FOUNDRY_PROJECT_CONNECTION_STRING]
+output project_names string[] = [for i in range(1, projectsCount): projects[i - 1].outputs.FOUNDRY_PROJECT_NAME]
 output config_validation_result bool = valid_config
 output FOUNDRY_NAME string = foundryName
