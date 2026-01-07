@@ -10,6 +10,7 @@ param agentSubnetId string = ''
   'Enabled'
 ])
 param publicNetworkAccess string = 'Enabled'
+param disableLocalAuth bool = true
 param sku object = {
   name: 'S0'
 }
@@ -86,9 +87,9 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = if 
     // required to work in AI Foundry
     allowProjectManagement: true
     publicNetworkAccess: publicNetworkAccess
+    disableLocalAuth: disableLocalAuth
     networkAcls: {
       bypass: 'AzureServices'
-
       defaultAction: 'Allow'
       ipRules: empty(myIpAddress)
         ? []

@@ -1,6 +1,7 @@
 import { aiServiceConfigType } from 'v2/inference-api.bicep'
 
 param location string = resourceGroup().location
+param tags object = {}
 param logAnalyticsWorkspaceId string
 param appInsightsInstrumentationKey string = ''
 param appInsightsId string = ''
@@ -41,6 +42,7 @@ module apim 'v2/apim.bicep' = {
   name: 'apim-v2'
   params: {
     location: location
+    tags: tags
     apimSubscriptionsConfig: [
       { displayName: 'Foundry APIM Subscription', name: subscriptionName }
     ]

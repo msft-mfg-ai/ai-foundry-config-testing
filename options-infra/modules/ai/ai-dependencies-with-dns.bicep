@@ -1,5 +1,6 @@
 import * as types from '../types/types.bicep'
 param location string = resourceGroup().location
+param tags object = {}
 param resourceToken string
 param aiServicesName string
 param aiAccountNameResourceGroupName string
@@ -26,6 +27,7 @@ module ai_dependencies '../ai-dependencies/standard-dependent-resources.bicep' =
   name: 'ai-dependencies-deployment'
   params: {
     location: location
+    tags: tags
     azureStorageName: azureStorageName
     aiSearchName: aiSearchName
     cosmosDBName: cosmosDBName
@@ -50,6 +52,7 @@ module ai_dependencies '../ai-dependencies/standard-dependent-resources.bicep' =
 module privateEndpointAndDNS '../networking/private-endpoint-and-dns.bicep' = {
   name: 'private-endpoints-and-dns-deployment'
   params: {
+    tags: tags
     aiAccountName: aiServicesName // AI Services to secure
     aiAccountNameResourceGroup: aiAccountNameResourceGroupName
     aiSearchName: ai_dependencies.outputs.aiSearchName // AI Search to secure

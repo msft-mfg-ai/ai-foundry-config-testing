@@ -3,7 +3,7 @@ import * as types from 'br/public:avm/res/key-vault/vault:0.13.3'
 
 param location string
 param name string
-param tags object
+param tags object = {}
 param userAssignedManagedIdentityPrincipalId string?
 param principalId string?
 param secrets types.secretType[]

@@ -16,6 +16,8 @@ This module deploys the core network infrastructure with security controls:
 @description('Azure region for the deployment')
 param location string
 
+param tags object = {}
+
 @description('The name of the virtual network')
 param vnetName string = 'agents-vnet-test'
 
@@ -86,6 +88,7 @@ module networkSecurityGroup 'br/public:avm/res/network/network-security-group:0.
   name: 'networkSecurityGroupDeployment'
   params: {
     name: 'agent-nsg'
+    tags: tags
   }
 }
 
@@ -93,6 +96,7 @@ module apimv2SecurityGroup 'br/public:avm/res/network/network-security-group:0.5
   name: 'apimv2SecurityGroupDeployment'
   params: {
     name: 'apim-v2-nsg'
+    tags: tags
     securityRules:[
       {
         name: 'AllowStorageOutbound'
@@ -128,15 +132,22 @@ module apimv2SecurityGroup 'br/public:avm/res/network/network-security-group:0.5
 
 module appGwSecurityGroup 'app-gw-nsg.bicep' = {
   name: 'appGwSecurityGroupDeployment'
+  params: {
+    tags: tags
+  }
 }
 
 module apimSecurityGroup 'apim-nsg.bicep' = {
   name: 'apimSecurityGroupDeployment'
+  params: {
+    tags: tags
+  }
 }
 
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   name: vnetName
   location: location
+  tags: tags
   properties: {
     addressSpace: {
       addressPrefixes: [

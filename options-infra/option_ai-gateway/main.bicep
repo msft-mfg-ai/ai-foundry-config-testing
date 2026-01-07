@@ -12,6 +12,12 @@ param openAiLocation string = location
 param existingFoundryName string?
 param projectsCount int = 1
 
+var tags = {
+  'created-by': 'option-ai-gateway'
+  'hidden-title': 'Foundry - APIM v2 Basic Public'
+  SecurityControl: 'Ignore'
+}
+
 var valid_config = empty(openAiApiBase) || empty(openAiResourceId)
   ? fail('OPENAI_API_BASE and OPENAI_RESOURCE_ID environment variables must be set.')
   : true
@@ -27,6 +33,7 @@ module foundry_identity '../modules/iam/identity.bicep' = {
   params: {
     identityName: 'foundry-${resourceToken}-identity'
     location: location
+    tags: tags
   }
 }
 
@@ -38,6 +45,7 @@ module vnet '../modules/networking/vnet.bicep' = {
     vnetName: 'project-vnet-${resourceToken}'
     location: location
     extraAgentSubnets: 1
+    tags: tags
   }
 }
 
@@ -49,6 +57,7 @@ module ai_dependencies '../modules/ai/ai-dependencies-with-dns.bicep' = {
     resourceToken: resourceToken
     aiServicesName: '' // create AI serviced PE later
     aiAccountNameResourceGroupName: ''
+    tags: tags
   }
 }
 
@@ -61,13 +70,14 @@ module logAnalytics '../modules/monitor/loganalytics.bicep' = {
     newLogAnalyticsName: 'log-analytics'
     newApplicationInsightsName: 'app-insights'
     location: location
+    tags: tags
   }
 }
 
 module keyVault '../modules/kv/key-vault.bicep' = {
   name: 'key-vault-deployment-for-foundry'
   params: {
-    tags: {}
+    tags: tags
     location: location
     name: take('kv-foundry-${resourceToken}', 24)
     logAnalyticsWorkspaceId: logAnalytics.outputs.logAnalyticsWorkspaceId
@@ -90,11 +100,13 @@ module foundry '../modules/ai/ai-foundry.bicep' = if (empty(existingFoundryName)
     name: foundryName
     location: location
     publicNetworkAccess: 'Enabled'
+    disableLocalAuth: false // keep local auth enabled for AI Gateway integration
     agentSubnetId: vnet.outputs.agentSubnetId // Use the first agent subnet
     deployments: [] // no models
     keyVaultResourceId: keyVault.outputs.AZURE_RESOURCE_KEY_VAULT_ID
     keyVaultConnectionEnabled: true
     existing_Foundry_Name: existingFoundryName
+    tags: tags
   }
 }
 
@@ -113,10 +125,9 @@ module fake_foundry '../modules/ai/ai-foundry-fake.bicep' = if (!empty(existingF
     keyVaultResourceId: keyVault.outputs.AZURE_RESOURCE_KEY_VAULT_ID
     keyVaultConnectionEnabled: true
     existing_Foundry_Name: existingFoundryName
+    tags: tags
   }
 }
-
-
 
 module identities '../modules/iam/identity.bicep' = [
   for i in range(1, projectsCount): {
@@ -124,6 +135,7 @@ module identities '../modules/iam/identity.bicep' = [
     params: {
       identityName: 'ai-project-${i}-identity-${resourceToken}'
       location: location
+      tags: tags
     }
   }
 ]
@@ -140,6 +152,7 @@ module projects '../modules/ai/ai-project-with-caphost.bicep' = [
       existingAiResourceId: null
       managedIdentityId: identities[i - 1].outputs.managedIdentityId
       appInsightsId: logAnalytics.outputs.applicationInsightsId
+      tags: tags
     }
     dependsOn: [foundry ?? fake_foundry]
   }
@@ -149,6 +162,7 @@ module ai_gateway '../modules/apim/ai-gateway.bicep' = {
   name: 'ai-gateway-deployment-${resourceToken}'
   params: {
     location: location
+    tags: tags
     resourceToken: resourceToken
     aiFoundryName: foundryName
     logAnalyticsWorkspaceId: logAnalytics.outputs.logAnalyticsWorkspaceId

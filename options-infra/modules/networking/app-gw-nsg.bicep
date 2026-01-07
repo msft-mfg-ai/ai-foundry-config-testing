@@ -1,7 +1,10 @@
+param tags object = {}
+
 module appGwNetworkSecurityGroup 'br/public:avm/res/network/network-security-group:0.5.2' = {
   name: 'appGwNetworkSecurityGroup-deployment'
   params: {
     name: 'appgw-nsg'
+    tags: tags
     securityRules: [
       // Required: Allow Application Gateway V2 infrastructure communication
       {

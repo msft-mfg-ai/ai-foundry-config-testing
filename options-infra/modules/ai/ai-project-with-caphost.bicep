@@ -1,5 +1,6 @@
 import * as types from '../types/types.bicep'
 
+param tags object = {}
 param aiDependencies types.aiDependenciesType
 param existingAiResourceId string?
 @allowed([
@@ -26,6 +27,7 @@ resource foundry 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' exist
 module aiProject './ai-project.bicep' = {
   name: 'deployment-for-${project_name}'
   params: {
+    tags: tags
     foundry_name: foundryName
     location: location
     project_name: project_name

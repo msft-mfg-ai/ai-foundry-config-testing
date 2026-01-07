@@ -2,6 +2,7 @@ import { aiServiceConfigType } from 'v2/inference-api.bicep'
 import { ModelType } from '../ai/connection-apim-gateway.bicep'
 
 param location string = resourceGroup().location
+param tags object = {}
 param logAnalyticsWorkspaceId string
 param appInsightsInstrumentationKey string = ''
 param appInsightsId string = ''
@@ -14,6 +15,7 @@ param aiServicesConfig aiServiceConfigType[] = []
 module apim 'apim.bicep' = {
   name: 'apim-deployment'
   params: {
+    tags: tags
     location: location
     logAnalyticsWorkspaceId: logAnalyticsWorkspaceId
     appInsightsInstrumentationKey: appInsightsInstrumentationKey

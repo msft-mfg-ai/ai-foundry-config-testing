@@ -80,6 +80,7 @@ param virtualNetworkType string = 'None'
 ])
 param publicNetworkAccess string = 'Enabled'
 param subnetResourceId string?
+param tags object = {}
 // ------------------
 //    TYPE DEFINITIONS
 // ------------------
@@ -103,6 +104,7 @@ type subscriptionType = {
 resource apimService 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
   name: apiManagementName
   location: location
+  tags: tags
   sku: {
     name: apimSku
     capacity: 1

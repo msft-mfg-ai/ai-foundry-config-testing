@@ -1,6 +1,7 @@
 import * as types from '../types/types.bicep'
 
 param location string = resourceGroup().location
+param tags object = {}
 
 @description('Name of the AI Foundry account')
 param aiAccountName string
@@ -41,6 +42,7 @@ resource aiAccount 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = 
 resource aiServicesPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (empty(aiServicesDnsZone)) {
   name: aiServicesDnsZoneName
   location: 'global'
+  tags: tags
 }
 
 // Reference existing private DNS zone if provided
@@ -55,6 +57,7 @@ var aiServicesDnsZoneId = empty(aiServicesDnsZone) ? aiServicesPrivateDnsZone.id
 resource openAiPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (empty(openAiDnsZone)) {
   name: openAiDnsZoneName
   location: 'global'
+  tags: tags
 }
 
 // Reference existing private DNS zone if provided
@@ -68,6 +71,7 @@ var openAiDnsZoneId = empty(openAiDnsZone) ? openAiPrivateDnsZone.id : existingO
 resource cognitiveServicesPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (empty(cognitiveServicesDnsZone)) {
   name: cognitiveServicesDnsZoneName
   location: 'global'
+  tags: tags
 }
 
 // Reference existing private DNS zone if provided
@@ -85,6 +89,7 @@ resource aiServicesLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2
   parent: aiServicesPrivateDnsZone
   location: 'global'
   name: 'aiServices-${resourceToken}-link'
+  tags: tags
   properties: {
     virtualNetwork: { id: vnetId }
     registrationEnabled: false
@@ -93,6 +98,7 @@ resource aiServicesLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2
 resource openAiLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (empty(openAiDnsZone)) {
   parent: openAiPrivateDnsZone
   location: 'global'
+  tags: tags
   name: 'aiServicesOpenAI-${resourceToken}-link'
   properties: {
     virtualNetwork: { id: vnetId }
@@ -102,6 +108,7 @@ resource openAiLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-
 resource cognitiveServicesLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (empty(cognitiveServicesDnsZone)) {
   parent: cognitiveServicesPrivateDnsZone
   location: 'global'
+  tags: tags
   name: 'aiServicesCognitiveServices-${resourceToken}-link'
   properties: {
     virtualNetwork: { id: vnetId }
@@ -115,6 +122,7 @@ resource cognitiveServicesLink 'Microsoft.Network/privateDnsZones/virtualNetwork
 resource aiAccountPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = if (!empty(aiAccountName)) {
   name: '${aiAccountName}-private-endpoint'
   location: location
+  tags: tags
   properties: {
     subnet: { id: peSubnetId } // Deploy in customer hub subnet
     privateLinkServiceConnections: [
