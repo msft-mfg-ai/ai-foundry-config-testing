@@ -235,14 +235,14 @@ module privateEndpointAndDNS 'modules/networking/private-endpoint-and-dns.bicep'
     #disable-next-line what-if-short-circuiting
     cosmosDBName: ai_dependencies!.outputs.COSMOS_DB_NAME
     #disable-next-line what-if-short-circuiting
-    vnetName: vnet!.outputs.virtualNetworkName // VNet containing subnets
+    vnetName: vnet!.outputs.VIRTUAL_NETWORK_NAME // VNet containing subnets
     #disable-next-line what-if-short-circuiting
-    peSubnetName: vnet!.outputs.peSubnetName // Subnet for private endpoints
+    peSubnetName: vnet!.outputs.VIRTUAL_NETWORK_SUBNETS.peSubnet.name // Subnet for private endpoints
     suffix: resourceToken // Unique identifier
     #disable-next-line what-if-short-circuiting
-    vnetResourceGroupName: vnet!.outputs.virtualNetworkResourceGroup
+    vnetResourceGroupName: vnet!.outputs.VIRTUAL_NETWORK_RESOURCE_GROUP
     #disable-next-line what-if-short-circuiting
-    vnetSubscriptionId: vnet!.outputs.virtualNetworkSubscriptionId // Subscription ID for the VNet
+    vnetSubscriptionId: vnet!.outputs.VIRTUAL_NETWORK_SUBSCRIPTION_ID // Subscription ID for the VNet
     #disable-next-line what-if-short-circuiting
     cosmosDBSubscriptionId: ai_dependencies!.outputs.COSMOS_DB_SUBSCRIPTION_ID // Subscription ID for Cosmos DB
     #disable-next-line what-if-short-circuiting
