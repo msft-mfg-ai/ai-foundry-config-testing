@@ -4,6 +4,13 @@ This module handles the core connection logic and can be reused across different
 ModelGateway connections support ApiKey authentication.
 */
 
+@export()
+type AuthConfigType = {
+  type: null | 'api_key'
+  name: null | 'Authorization'
+  format: string
+}
+
 // Project resource parameters
 param  aiFoundryName string
 param connectionName string
