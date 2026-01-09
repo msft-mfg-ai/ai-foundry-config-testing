@@ -3,12 +3,12 @@ import * as types from 'br/public:avm/res/key-vault/vault:0.13.3'
 
 param location string
 param name string
-param tags object
-param userAssignedManagedIdentityPrincipalId string
+param tags object = {}
+param userAssignedManagedIdentityPrincipalId string?
 param principalId string?
 param secrets types.secretType[]
 param doRoleAssignments bool
-param logAnalyticsWorkspaceId string
+param logAnalyticsWorkspaceId string?
 param privateEndpointSubnetId string?
 param privateEndpointName string = ''
 param privateDnsZoneResourceId string = ''
@@ -20,7 +20,7 @@ module vault 'br/public:avm/res/key-vault/vault:0.13.3' = {
   params: {
     name: name
     location: location
-    diagnosticSettings: [
+    diagnosticSettings: empty(logAnalyticsWorkspaceId) ? [] : [
       {
         name: 'all-logs-to-log-analytics'
         metricCategories: [
@@ -38,13 +38,15 @@ module vault 'br/public:avm/res/key-vault/vault:0.13.3' = {
     publicNetworkAccess: publicAccessEnabled ? 'Enabled' : 'Disabled'
     roleAssignments: doRoleAssignments
       ? union(
-          [
-            {
-              principalId: userAssignedManagedIdentityPrincipalId
-              principalType: 'ServicePrincipal'
-              roleDefinitionIdOrName: 'Key Vault Secrets User'
-            }
-          ],
+          empty(userAssignedManagedIdentityPrincipalId)
+            ? []
+            : [
+                {
+                  principalId: userAssignedManagedIdentityPrincipalId
+                  principalType: 'ServicePrincipal'
+                  roleDefinitionIdOrName: 'Key Vault Secrets User'
+                }
+              ],
           empty(principalId)
             ? []
             : [
@@ -56,20 +58,22 @@ module vault 'br/public:avm/res/key-vault/vault:0.13.3' = {
               ]
         )
       : []
-    privateEndpoints: empty(privateEndpointSubnetId) ? null : [
-      {
-        name: privateEndpointName
-        subnetResourceId: privateEndpointSubnetId!
-        tags: tags
-        privateDnsZoneGroup: empty(privateDnsZoneResourceId)
-          ? null
-          : {
-              privateDnsZoneGroupConfigs: [
-                { privateDnsZoneResourceId: privateDnsZoneResourceId }
-              ]
-            }
-      }
-    ]
+    privateEndpoints: empty(privateEndpointSubnetId)
+      ? null
+      : [
+          {
+            name: privateEndpointName
+            subnetResourceId: privateEndpointSubnetId!
+            tags: tags
+            privateDnsZoneGroup: empty(privateDnsZoneResourceId)
+              ? null
+              : {
+                  privateDnsZoneGroupConfigs: [
+                    { privateDnsZoneResourceId: privateDnsZoneResourceId }
+                  ]
+                }
+          }
+        ]
     secrets: secrets
     enablePurgeProtection: false
     enableRbacAuthorization: true
@@ -77,5 +81,5 @@ module vault 'br/public:avm/res/key-vault/vault:0.13.3' = {
   }
 }
 
-output AZURE_RESOURCE_KEY_VAULT_ID string = vault.outputs.resourceId
-output AZURE_RESOURCE_KEY_VAULT_NAME string = vault.outputs.name
+output KEY_VAULT_RESOURCE_ID string = vault.outputs.resourceId
+output KEY_VAULT_NAME string = vault.outputs.name

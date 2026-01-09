@@ -16,17 +16,25 @@ This module deploys the core network infrastructure with security controls:
 @description('Azure region for the deployment')
 param location string
 
+param tags object = {}
+
 @description('The name of the virtual network')
 param vnetName string = 'agents-vnet-test'
 
 @description('The name of Agents Subnet')
 param agentSubnetName string = 'agent-subnet'
 
-@description('The name of Hub subnet')
+@description('The name of Private Endpoint subnet')
 param peSubnetName string = 'pe-subnet'
 
-@description('The name of Hub subnet')
+@description('The name of App Gateway subnet')
 param appGwSubnetName string = 'appgw-subnet'
+
+@description('The name of API Management subnet')
+param apimSubnetName string = 'apim-subnet'
+
+@description('The name of API Management v2 subnet')
+param apimv2SubnetName string = 'apim-v2-subnet'
 
 @description('Address space for the VNet')
 param vnetAddressPrefix string = ''
@@ -41,12 +49,20 @@ param customDNS string = ''
 param peSubnetPrefix string = ''
 @description('Address prefix for the application gateway subnet')
 param appGwSubnetPrefix string = ''
+@description('Address prefix for the APIM subnet')
+param apimSubnetPrefix string = ''
+@description('Address prefix for the APIM subnet')
+param apimv2SubnetPrefix string = ''
+
+var is_vnet_address_prefix_valid =  int(split(vnetAddress, '/')[1]) <= 21 ? true: fail('VNet address prefix must be /21 or larger (e.g., /16, /20)')
 
 var defaultVnetAddressPrefix = '192.168.0.0/16'
 var vnetAddress = empty(vnetAddressPrefix) ? defaultVnetAddressPrefix : vnetAddressPrefix
 var agentSubnet = empty(agentSubnetPrefix) ? cidrSubnet(vnetAddress, 24, 0) : agentSubnetPrefix
 var peSubnet = empty(peSubnetPrefix) ? cidrSubnet(vnetAddress, 24, 1) : peSubnetPrefix
 var appGwSubnet = empty(appGwSubnetPrefix) ? cidrSubnet(vnetAddress, 24, extraAgentSubnets + 3) : appGwSubnetPrefix
+var apimSubnet = empty(apimSubnetPrefix) ? cidrSubnet(vnetAddress, 24, extraAgentSubnets + 4) : apimSubnetPrefix
+var apimv2Subnet = empty(apimv2SubnetPrefix) ? cidrSubnet(vnetAddress, 24, extraAgentSubnets + 5) : apimv2SubnetPrefix
 
 // Temporary
 var laSubnet = empty(peSubnetPrefix) ? cidrSubnet(vnetAddress, 24, 2) : peSubnetPrefix
@@ -70,85 +86,70 @@ var extraAgentSubnetObjects = [
   }
 ]
 
-module networkSecurityGroup 'br/public:avm/res/network/network-security-group:0.5.1' = {
+module networkSecurityGroup 'br/public:avm/res/network/network-security-group:0.5.2' = {
   name: 'networkSecurityGroupDeployment'
   params: {
     name: 'agent-nsg'
+    tags: tags
   }
 }
 
-module appGwSecurityGroup 'br/public:avm/res/network/network-security-group:0.5.1' = {
-  name: 'appGwSecurityGroupDeployment'
+module apimv2SecurityGroup 'br/public:avm/res/network/network-security-group:0.5.2' = {
+  name: 'apimv2SecurityGroupDeployment'
   params: {
-    name: 'appgw-nsg'
-    securityRules: [
-      // Required: Allow Application Gateway V2 infrastructure communication
+    name: 'apim-v2-nsg'
+    tags: tags
+    securityRules:[
       {
-        name: 'AllowGatewayManagerInbound'
+        name: 'AllowStorageOutbound'
         properties: {
           priority: 100
-          direction: 'Inbound'
+          direction: 'Outbound'
           access: 'Allow'
           protocol: 'Tcp'
-          sourceAddressPrefix: 'GatewayManager'
+          sourceAddressPrefix: 'VirtualNetwork'
           sourcePortRange: '*'
-          destinationAddressPrefix: '*'
-          destinationPortRange: '65200-65535'
-          description: 'Required for Application Gateway V2 infrastructure communication'
+          destinationAddressPrefix: 'Storage'
+          destinationPortRange: '443'
+          description: 'Dependency on Azure Storage'
         }
       }
-      // Required: Allow Azure Load Balancer health probes
       {
-        name: 'AllowAzureLoadBalancerInbound'
+        name: 'AllowKeyVaultOutbound'
         properties: {
           priority: 110
-          direction: 'Inbound'
-          access: 'Allow'
-          protocol: '*'
-          sourceAddressPrefix: 'AzureLoadBalancer'
-          sourcePortRange: '*'
-          destinationAddressPrefix: '*'
-          destinationPortRange: '*'
-          description: 'Required for Azure Load Balancer health probes'
-        }
-      }
-      // Allow HTTPS traffic from internet (for public-facing App Gateway)
-      {
-        name: 'AllowHttpsInbound'
-        properties: {
-          priority: 200
-          direction: 'Inbound'
+          direction: 'Outbound'
           access: 'Allow'
           protocol: 'Tcp'
-          sourceAddressPrefix: 'Internet'
+          sourceAddressPrefix: 'VirtualNetwork'
           sourcePortRange: '*'
-          destinationAddressPrefix: '*'
+          destinationAddressPrefix: 'AzureKeyVault'
           destinationPortRange: '443'
-          description: 'Allow HTTPS traffic'
-        }
-      }
-      // Allow HTTP traffic (optional - for redirect to HTTPS)
-      {
-        name: 'AllowHttpInbound'
-        properties: {
-          priority: 210
-          direction: 'Inbound'
-          access: 'Allow'
-          protocol: 'Tcp'
-          sourceAddressPrefix: 'Internet'
-          sourcePortRange: '*'
-          destinationAddressPrefix: '*'
-          destinationPortRange: '80'
-          description: 'Allow HTTP traffic (for HTTPS redirect)'
+          description: 'Dependency on Azure Key Vault'
         }
       }
     ]
   }
 }
 
+module appGwSecurityGroup 'app-gw-nsg.bicep' = {
+  name: 'appGwSecurityGroupDeployment'
+  params: {
+    tags: tags
+  }
+}
+
+module apimSecurityGroup 'apim-nsg.bicep' = {
+  name: 'apimSecurityGroupDeployment'
+  params: {
+    tags: tags
+  }
+}
+
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   name: vnetName
   location: location
+  tags: tags
   properties: {
     addressSpace: {
       addressPrefixes: [
@@ -194,8 +195,34 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
         properties: {
           addressPrefix: appGwSubnet
           networkSecurityGroup: {
-            id: appGwSecurityGroup.outputs.resourceId
+            id: appGwSecurityGroup.outputs.networkSecurityGroupResourceId
           }
+        }
+      }
+      {
+        name: apimSubnetName
+        properties: {
+          addressPrefix: apimSubnet
+          networkSecurityGroup: {
+            id: apimSecurityGroup.outputs.networkSecurityGroupResourceId
+          }
+        }
+      }
+      {
+        name: apimv2SubnetName
+        properties: {
+          addressPrefix: apimv2Subnet
+          networkSecurityGroup: {
+            id: apimv2SecurityGroup.outputs.resourceId
+          }
+          delegations: [
+            {
+              name: 'Microsoft.Web/serverfarms'
+              properties: {
+                serviceName: 'Microsoft.Web/serverfarms'
+              }
+            }
+          ]
         }
       }
       {
@@ -218,16 +245,59 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
     ])
   }
 }
+
+var extraAgentSubnetsArray SubnetInfoType[] = [for name in extraAgentSubnetNames: {
+  name: name
+  resourceId: '${virtualNetwork.id}/subnets/${name}'
+}]
+
 // Output variables
-output peSubnetName string = peSubnetName
-output agentSubnetName string = agentSubnetName
-output appGwSubnetName string = appGwSubnetName
-output agentSubnetId string = '${virtualNetwork.id}/subnets/${agentSubnetName}'
-output peSubnetId string = '${virtualNetwork.id}/subnets/${peSubnetName}'
-output appGwSubnetId string = '${virtualNetwork.id}/subnets/${appGwSubnetName}'
-output virtualNetworkName string = virtualNetwork.name
-output virtualNetworkId string = virtualNetwork.id
-output virtualNetworkResourceGroup string = resourceGroup().name
-output virtualNetworkSubscriptionId string = subscription().subscriptionId
-output extraAgentSubnetNames array = extraAgentSubnetNames
-output extraAgentSubnetIds array = [for name in extraAgentSubnetNames: '${virtualNetwork.id}/subnets/${name}']
+type SubnetInfoType = {
+  name: string
+  resourceId: string
+}
+type SubnetsType = {
+  @description('The Agents Subnet information')
+  agentSubnet: SubnetInfoType
+  @description('The Private Endpoint Subnet information')
+  peSubnet: SubnetInfoType
+  @description('The Application Gateway Subnet information')
+  appGwSubnet: SubnetInfoType
+  @description('The API Management V1 SKUs Subnet information (no NSG)')
+  apimSubnet: SubnetInfoType
+  @description('The API Management V2 SKUs Subnet information')
+  apimv2Subnet: SubnetInfoType
+  @description('Additional Agent Subnets information')
+  extraAgentSubnets: SubnetInfoType[]
+}
+
+output VIRTUAL_NETWORK_SUBNETS SubnetsType = {
+  agentSubnet: {
+    name: agentSubnetName
+    resourceId: '${virtualNetwork.id}/subnets/${agentSubnetName}'
+  }
+  peSubnet: {
+    name: peSubnetName
+    resourceId: '${virtualNetwork.id}/subnets/${peSubnetName}'
+  }
+  appGwSubnet: {
+    name: appGwSubnetName
+    resourceId: '${virtualNetwork.id}/subnets/${appGwSubnetName}'
+  }
+  apimSubnet: {
+    name: apimSubnetName
+    resourceId: '${virtualNetwork.id}/subnets/${apimSubnetName}'
+  }
+  apimv2Subnet: {
+    name: apimv2SubnetName
+    resourceId: '${virtualNetwork.id}/subnets/${apimv2SubnetName}'
+  }
+  extraAgentSubnets: extraAgentSubnetsArray
+}
+
+output VIRTUAL_NETWORK_PREFIX_VALID bool = is_vnet_address_prefix_valid
+output VIRTUAL_NETWORK_NAME string = virtualNetwork.name
+output VIRTUAL_NETWORK_RESOURCE_ID string = virtualNetwork.id
+output VIRTUAL_NETWORK_RESOURCE_GROUP string = resourceGroup().name
+output VIRTUAL_NETWORK_SUBSCRIPTION_ID string = subscription().subscriptionId
+
