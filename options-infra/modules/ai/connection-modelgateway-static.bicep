@@ -22,6 +22,7 @@ Use: az account set --subscription <foundry-subscription-id>
 import { AuthConfigType } from './modelgateway-connection-common.bicep'
 
 param aiFoundryName string
+param aiFoundryProjectName string?
 param targetUrl string = 'https://your-model-gateway.example.com/v1'
 param gatewayName string = 'example-gateway'
 
@@ -107,9 +108,10 @@ var modelGatewayMetadata = union(
 
 // Use the common module to create the ModelGateway connection
 module modelGatewayConnection 'modelgateway-connection-common.bicep' = {
-  name: 'modelgateway-connection-static'
+  name: 'modelgateway-connection-static-deployment'
   params: {
     aiFoundryName: aiFoundryName
+    aiFoundryProjectName: aiFoundryProjectName
     connectionName: finalConnectionName
     targetUrl: targetUrl
     authType: authType

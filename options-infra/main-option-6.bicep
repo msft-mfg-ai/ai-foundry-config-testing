@@ -14,7 +14,7 @@ module vnet './modules/networking/vnet.bicep' = {
   params: {
     vnetName: 'project-vnet-${resourceToken}'
     location: location
-    vnetAddressPrefix: '172.17.0.0/22'
+    vnetAddressPrefix: '172.16.0.0/21'
   }
 }
 
@@ -52,7 +52,20 @@ module foundry './modules/ai/ai-foundry.bicep' = {
     publicNetworkAccess: 'Enabled'
     agentSubnetResourceId: vnet.outputs.VIRTUAL_NETWORK_SUBNETS.agentSubnet.resourceId // Use the first agent subnet
     deployments: [
-
+      {
+        name: 'gpt-4.1-mini'
+        properties: {
+          model: {
+            format: 'OpenAI'
+            name: 'gpt-4.1-mini'
+            version: '2025-04-14'
+          }
+        }
+        sku: {
+          name: 'GlobalStandard'
+          capacity: 20
+        }
+      }
     ]
   }
 }

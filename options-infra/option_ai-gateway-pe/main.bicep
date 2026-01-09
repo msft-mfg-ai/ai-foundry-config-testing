@@ -10,7 +10,13 @@ param openAiApiBase string
 param openAiResourceId string
 param openAiLocation string = location
 param existingFoundryName string?
-param projectsCount int = 1
+param projectsCount int = 3
+
+var tags = {
+  'created-by': 'option-ai-gateway'
+  'hidden-title': 'Foundry - APIM v2 Standard with PE'
+  // SecurityControl: 'Ignore'
+}
 
 var valid_config = empty(openAiApiBase) || empty(openAiResourceId)
   ? fail('OPENAI_API_BASE and OPENAI_RESOURCE_ID environment variables must be set.')
@@ -25,8 +31,9 @@ var openAiResourceGroupName = openAiParts[4]
 module foundry_identity '../modules/iam/identity.bicep' = {
   name: 'foundry-identity-deployment'
   params: {
-    identityName: 'foundry-${resourceToken}-identity'
+    tags: tags
     location: location
+    identityName: 'foundry-${resourceToken}-identity'
   }
 }
 
@@ -35,16 +42,18 @@ module foundry_identity '../modules/iam/identity.bicep' = {
 module vnet '../modules/networking/vnet.bicep' = {
   name: 'vnet'
   params: {
-    vnetName: 'project-vnet-${resourceToken}'
+    tags: tags
     location: location
+    vnetName: 'project-vnet-${resourceToken}'
     extraAgentSubnets: 1
   }
 }
 
-
 module ai_dependencies '../modules/ai/ai-dependencies-with-dns.bicep' = {
   name: 'ai-dependencies-with-dns'
   params: {
+    tags: tags
+    location: location
     peSubnetName: vnet.outputs.VIRTUAL_NETWORK_SUBNETS.peSubnet.name
     vnetResourceId: vnet.outputs.VIRTUAL_NETWORK_RESOURCE_ID
     resourceToken: resourceToken
@@ -57,6 +66,8 @@ module ai_dependencies '../modules/ai/ai-dependencies-with-dns.bicep' = {
 module openai_private_endpoint '../modules/networking/ai-pe-dns.bicep' = {
   name: 'openai-private-endpoint-and-dns-deployment'
   params: {
+    tags: tags
+    location: location
     aiAccountName: openAiName
     aiAccountNameResourceGroup: openAiResourceGroupName
     aiAccountSubscriptionId: openAiSubscriptionId
@@ -72,16 +83,17 @@ module openai_private_endpoint '../modules/networking/ai-pe-dns.bicep' = {
 module logAnalytics '../modules/monitor/loganalytics.bicep' = {
   name: 'log-analytics'
   params: {
+    tags: tags
+    location: location
     newLogAnalyticsName: 'log-analytics'
     newApplicationInsightsName: 'app-insights'
-    location: location
   }
 }
 
 module keyVault '../modules/kv/key-vault.bicep' = {
   name: 'key-vault-deployment-for-foundry'
   params: {
-    tags: {}
+    tags: tags
     location: location
     name: take('kv-foundry-${resourceToken}', 24)
     logAnalyticsWorkspaceId: logAnalytics.outputs.LOG_ANALYTICS_WORKSPACE_RESOURCE_ID
@@ -100,9 +112,10 @@ var foundryName = existingFoundryName ?? 'ai-foundry-${resourceToken}'
 module foundry '../modules/ai/ai-foundry.bicep' = if (empty(existingFoundryName)) {
   name: 'foundry-deployment-${resourceToken}'
   params: {
+    tags: tags
+    location: location
     managedIdentityResourceId: foundry_identity.outputs.MANAGED_IDENTITY_RESOURCE_ID
     name: foundryName
-    location: location
     publicNetworkAccess: 'Enabled'
     agentSubnetResourceId: vnet.outputs.VIRTUAL_NETWORK_SUBNETS.agentSubnet.resourceId // Use the first agent subnet
     deployments: [] // no models
@@ -118,9 +131,10 @@ module foundry '../modules/ai/ai-foundry.bicep' = if (empty(existingFoundryName)
 module fake_foundry '../modules/ai/ai-foundry-fake.bicep' = if (!empty(existingFoundryName)) {
   name: 'fake-foundry-deployment-${resourceToken}'
   params: {
+    tags: tags
+    location: location
     managedIdentityId: foundry_identity.outputs.MANAGED_IDENTITY_RESOURCE_ID
     name: foundryName
-    location: location
     publicNetworkAccess: 'Enabled'
     agentSubnetResourceId: vnet.outputs.VIRTUAL_NETWORK_SUBNETS.agentSubnet.resourceId // Use the first agent subnet
     deployments: [] // no models
@@ -130,14 +144,13 @@ module fake_foundry '../modules/ai/ai-foundry-fake.bicep' = if (!empty(existingF
   }
 }
 
-
-
 module identities '../modules/iam/identity.bicep' = [
   for i in range(1, projectsCount): {
     name: 'ai-project-${i}-identity-${resourceToken}'
     params: {
-      identityName: 'ai-project-${i}-identity-${resourceToken}'
+      tags: tags
       location: location
+      identityName: 'ai-project-${i}-identity-${resourceToken}'
     }
   }
 ]
@@ -147,8 +160,9 @@ module projects '../modules/ai/ai-project-with-caphost.bicep' = [
   for i in range(1, projectsCount): {
     name: 'ai-project-${i}-with-caphost-${resourceToken}'
     params: {
-      foundryName: foundryName
+      tags: tags
       location: location
+      foundryName: foundryName
       projectId: i
       aiDependencies: ai_dependencies.outputs.AI_DEPENDECIES
       existingAiResourceId: null
@@ -162,6 +176,7 @@ module projects '../modules/ai/ai-project-with-caphost.bicep' = [
 module ai_gateway '../modules/apim/ai-gateway-pe.bicep' = {
   name: 'ai-gateway-deployment-${resourceToken}'
   params: {
+    tags: tags
     location: location
     resourceToken: resourceToken
     aiFoundryName: foundryName
@@ -224,7 +239,31 @@ module apim_role_assignment '../modules/iam/role-assignment-cognitiveServices.bi
   }
 }
 
-output project_connection_strings string[] = [for i in range(1, projectsCount): projects[i - 1].outputs.FOUNDRY_PROJECT_CONNECTION_STRING]
+module dashboard_setup '../modules/dashboard/dashboard-setup.bicep' = {
+  name: 'dashboard-setup-deployment-${resourceToken}'
+  params: {
+    location: location
+    logAnalyticsWorkspaceName: logAnalytics.outputs.LOG_ANALYTICS_WORKSPACE_NAME
+    dashboardDisplayName: 'APIM Token Usage Dashboard for ${resourceToken}'
+  }
+}
+
+module models_policy '../modules/policy/models-policy.bicep' = {
+  scope: subscription()
+  name: 'policy-definition-deployment-${resourceToken}'
+}
+
+module models_policy_assignment '../modules/policy/models-policy-assignment.bicep' = {
+  name: 'policy-assignment-deployment-${resourceToken}'
+  params: {
+    cognitiveServicesPolicyDefinitionId: models_policy.outputs.cognitiveServicesPolicyDefinitionId
+    allowedCognitiveServicesModels: []
+  }
+}
+
+output project_connection_strings string[] = [
+  for i in range(1, projectsCount): projects[i - 1].outputs.FOUNDRY_PROJECT_CONNECTION_STRING
+]
 output project_names string[] = [for i in range(1, projectsCount): projects[i - 1].outputs.FOUNDRY_PROJECT_NAME]
 output config_validation_result bool = valid_config
 output FOUNDRY_NAME string = foundryName

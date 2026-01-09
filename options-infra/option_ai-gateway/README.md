@@ -1,6 +1,6 @@
 # Option: AI Gateway (External APIM) with AI Foundry
 
-This deployment option creates an AI Foundry environment with an **external Azure API Management (APIM)** instance acting as an AI Gateway to proxy requests to an external Azure OpenAI resource.
+This deployment option creates an AI Foundry environment with an **external Azure API Management (APIM) Basic v2** instance acting as an AI Gateway to proxy requests to an external Azure OpenAI resource.
 
 ## Architecture Overview
 

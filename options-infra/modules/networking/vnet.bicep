@@ -54,6 +54,8 @@ param apimSubnetPrefix string = ''
 @description('Address prefix for the APIM subnet')
 param apimv2SubnetPrefix string = ''
 
+var is_vnet_address_prefix_valid =  int(split(vnetAddress, '/')[1]) <= 21 ? true: fail('VNet address prefix must be /21 or larger (e.g., /16, /20)')
+
 var defaultVnetAddressPrefix = '192.168.0.0/16'
 var vnetAddress = empty(vnetAddressPrefix) ? defaultVnetAddressPrefix : vnetAddressPrefix
 var agentSubnet = empty(agentSubnetPrefix) ? cidrSubnet(vnetAddress, 24, 0) : agentSubnetPrefix
@@ -293,6 +295,7 @@ output VIRTUAL_NETWORK_SUBNETS SubnetsType = {
   extraAgentSubnets: extraAgentSubnetsArray
 }
 
+output VIRTUAL_NETWORK_PREFIX_VALID bool = is_vnet_address_prefix_valid
 output VIRTUAL_NETWORK_NAME string = virtualNetwork.name
 output VIRTUAL_NETWORK_RESOURCE_ID string = virtualNetwork.id
 output VIRTUAL_NETWORK_RESOURCE_GROUP string = resourceGroup().name

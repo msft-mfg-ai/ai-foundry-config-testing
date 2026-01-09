@@ -6,6 +6,7 @@ This module handles the core connection logic and can be reused across different
 
 // Project resource parameters
 param aiFoundryName string
+param aiFoundryProjectName string?
 param connectionName string = ''
 
 // APIM resource parameters  
@@ -131,6 +132,10 @@ resource aiFoundry 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' exi
   scope: resourceGroup()
 }
 
+resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' existing = if (aiFoundryProjectName != null) {
+  name: aiFoundryProjectName!
+  parent: aiFoundry
+}
 
 // Reference the APIM service (can be in different resource group/subscription)
 resource existingApim 'Microsoft.ApiManagement/service@2021-08-01' existing = {
@@ -151,9 +156,25 @@ resource apimSubscription 'Microsoft.ApiManagement/service/subscriptions@2021-08
 }
 
 // Create the connection with ApiKey authentication
-resource connectionApiKey 'Microsoft.CognitiveServices/accounts/connections@2025-04-01-preview' = if (authType == 'ApiKey') {
+resource connectionApiKey 'Microsoft.CognitiveServices/accounts/connections@2025-04-01-preview' = if (authType == 'ApiKey' && aiFoundryProjectName == null) {
   name: connectionName
   parent: aiFoundry
+  properties: {
+    category: 'ApiManagement'
+    target: '${existingApim.properties.gatewayUrl}/${apimApi.properties.path}'
+    authType: 'ApiKey'
+    isSharedToAll: isSharedToAll
+    credentials: {
+      key: apimSubscription.listSecrets(apimSubscription.apiVersion).primaryKey
+    }
+    metadata: metadata
+  }
+}
+
+// Create the connection with ApiKey authentication
+resource connectionProjectApiKey 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (authType == 'ApiKey' && aiFoundryProjectName != null) {
+  name: connectionName
+  parent: aiProject
   properties: {
     category: 'ApiManagement'
     target: '${existingApim.properties.gatewayUrl}/${apimApi.properties.path}'

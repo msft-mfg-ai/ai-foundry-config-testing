@@ -1,4 +1,5 @@
 import { aiServiceConfigType } from 'v2/inference-api.bicep'
+import { subscriptionType } from 'v2/apim.bicep'
 
 param location string = resourceGroup().location
 param tags object = {}
@@ -14,7 +15,9 @@ param aiServicesConfig aiServiceConfigType[] = []
 @description('The suffix to append to the API Management instance name. Defaults to a unique string based on subscription and resource group IDs.')
 param resourceSuffix string = uniqueString(subscription().id, resourceGroup().id)
 
-param subscriptionName string = 'foundry-apim-subscription'
+@description('The name of the subscriptions to be created in API Management for the AI Gateway')
+param subscriptions subscriptionType[] = []
+
 @allowed([
   'External'
   'Internal'
@@ -43,9 +46,7 @@ module apim 'v2/apim.bicep' = {
   params: {
     location: location
     tags: tags
-    apimSubscriptionsConfig: [
-      { displayName: 'Foundry APIM Subscription', name: subscriptionName }
-    ]
+    apimSubscriptionsConfig: subscriptions
     lawId: logAnalyticsWorkspaceId
     appInsightsInstrumentationKey: appInsightsInstrumentationKey
     appInsightsId: appInsightsId
@@ -80,14 +81,11 @@ module inference_api 'v2/inference-api.bicep' = {
   }
 }
 
-var apimSubscriptionLookup = filter(apim.outputs.apimSubscriptions, sub => sub.name == subscriptionName)
-
 output apimResourceId string = apim.outputs.id
 output apimName string = apim.outputs.name
 output inferenceApiId string = inference_api.outputs.apiId
 output inferenceApiName string = inference_api.outputs.apiName
-output subscriptionName string = subscriptionName
-output subscriptionValue string = empty(apimSubscriptionLookup) ? '' : first(apimSubscriptionLookup).key
+output subscriptions array = apim.outputs.apimSubscriptions
 output apimPrincipalId string = apim.outputs.principalId
 output apimPrivateIp string = apim.outputs.apimPrivateIp
 output apimPublicIp string = apim.outputs.apimPublicIp

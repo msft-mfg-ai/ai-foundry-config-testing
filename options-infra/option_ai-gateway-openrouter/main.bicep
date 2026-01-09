@@ -9,7 +9,7 @@ param location string = resourceGroup().location
 @secure()
 param openRouterApiKey string
 param existingFoundryName string?
-param projectsCount int = 1
+param projectsCount int = 3
 
 var tags = {
   'created-by': 'option-ai-gateway'
@@ -23,9 +23,9 @@ var resourceToken = toLower(uniqueString(resourceGroup().id, location))
 module foundry_identity '../modules/iam/identity.bicep' = {
   name: 'foundry-identity-deployment'
   params: {
-    identityName: 'foundry-${resourceToken}-identity'
-    location: location
     tags: tags
+    location: location
+    identityName: 'foundry-${resourceToken}-identity'
   }
 }
 
@@ -35,10 +35,10 @@ module foundry_identity '../modules/iam/identity.bicep' = {
 module logAnalytics '../modules/monitor/loganalytics.bicep' = {
   name: 'log-analytics'
   params: {
+    tags: tags
+    location: location
     newLogAnalyticsName: 'log-analytics'
     newApplicationInsightsName: 'app-insights'
-    location: location
-    tags: tags
   }
 }
 
@@ -51,7 +51,6 @@ module keyVault '../modules/kv/key-vault.bicep' = {
     logAnalyticsWorkspaceId: logAnalytics.outputs.LOG_ANALYTICS_WORKSPACE_RESOURCE_ID
     doRoleAssignments: true
     secrets: []
-
     publicAccessEnabled: false
     privateEndpointSubnetId: null
     privateEndpointName: null
@@ -64,10 +63,11 @@ var foundryName = existingFoundryName ?? 'ai-foundry-${resourceToken}'
 module foundry '../modules/ai/ai-foundry.bicep' = if (empty(existingFoundryName)) {
   name: 'foundry-deployment-${resourceToken}'
   params: {
+    tags: tags
+    location: location
     #disable-next-line what-if-short-circuiting
     managedIdentityResourceId: foundry_identity.outputs.MANAGED_IDENTITY_RESOURCE_ID
     name: foundryName
-    location: location
     publicNetworkAccess: 'Enabled'
     agentSubnetResourceId: null
     deployments: [] // no models
@@ -75,7 +75,6 @@ module foundry '../modules/ai/ai-foundry.bicep' = if (empty(existingFoundryName)
     keyVaultResourceId: keyVault.outputs.KEY_VAULT_RESOURCE_ID
     keyVaultConnectionEnabled: true
     existing_Foundry_Name: existingFoundryName
-    tags: tags
   }
 }
 
@@ -85,16 +84,16 @@ module foundry '../modules/ai/ai-foundry.bicep' = if (empty(existingFoundryName)
 module fake_foundry '../modules/ai/ai-foundry-fake.bicep' = if (!empty(existingFoundryName)) {
   name: 'fake-foundry-deployment-${resourceToken}'
   params: {
+    tags: tags
+    location: location
     managedIdentityId: foundry_identity.outputs.MANAGED_IDENTITY_RESOURCE_ID
     name: foundryName
-    location: location
     publicNetworkAccess: 'Enabled'
     agentSubnetResourceId: null
     deployments: [] // no models
     keyVaultResourceId: keyVault.outputs.KEY_VAULT_RESOURCE_ID
     keyVaultConnectionEnabled: true
     existing_Foundry_Name: existingFoundryName
-    tags: tags
   }
 }
 
@@ -102,88 +101,94 @@ module identities '../modules/iam/identity.bicep' = [
   for i in range(1, projectsCount): {
     name: 'ai-project-${i}-identity-${resourceToken}'
     params: {
-      identityName: 'ai-project-${i}-identity-${resourceToken}'
-      location: location
       tags: tags
+      location: location
+
+      identityName: 'ai-project-${i}-identity-${resourceToken}'
     }
   }
 ]
+
+var projectNames = [for i in range(1, projectsCount): 'ai-project-${resourceToken}-${i}']
 
 @batchSize(1)
 module projects '../modules/ai/ai-project.bicep' = [
   for i in range(1, projectsCount): {
     name: 'ai-project-${i}-with-caphost-${resourceToken}'
     params: {
-      foundry_name: foundryName
+      tags: tags
       location: location
-      project_name: 'ai-project-${i}'
+      foundry_name: foundryName
+      project_name: projectNames[i - 1]
       display_name: 'AI Project ${i}'
       project_description: 'AI Project ${i} deployed via AI Gateway OpenRouter option'
       managedIdentityResourceId: identities[i - 1].outputs.MANAGED_IDENTITY_RESOURCE_ID
       appInsightsResourceId: logAnalytics.outputs.APPLICATION_INSIGHTS_RESOURCE_ID
       createAccountCapabilityHost: true
-      tags: tags
     }
     dependsOn: [foundry ?? fake_foundry]
   }
 ]
 
-module modelGatewayConnectionStatic '../modules/ai/connection-modelgateway-static.bicep' = {
-  name: 'model-gateway-connection-static'
-  params: {
-    aiFoundryName: foundryName
-    connectionName: 'openrouter-gateway-${resourceToken}-static'
-    apiKey: openRouterApiKey
-    isSharedToAll: true
-    gatewayName: 'apim'
-    // Static model list - aliases map to actual OpenRouter model IDs
-    // Aliases must NOT contain slashes to avoid path conflicts
-    staticModels: [
-      {
-        name: 'gpt-4o-mini'
-        properties: {
-          model: {
-            name: 'openai/gpt-4o-mini' // Actual OpenRouter model ID
-            version: ''
-            format: 'OpenAI'
+module modelGatewayConnectionStatic '../modules/ai/connection-modelgateway-static.bicep' = [
+  for projectName in projectNames: {
+    name: '${projectName}-connection-gateway'
+    params: {
+      aiFoundryName: foundryName
+      aiFoundryProjectName: projectName
+      connectionName: 'openrouter-gateway-${projectName}-static'
+      apiKey: openRouterApiKey
+      isSharedToAll: false
+      gatewayName: 'apim'
+      // Static model list - aliases map to actual OpenRouter model IDs
+      // Aliases must NOT contain slashes to avoid path conflicts
+      staticModels: [
+        {
+          name: 'gpt-4o-mini'
+          properties: {
+            model: {
+              name: 'openai/gpt-4o-mini' // Actual OpenRouter model ID
+              version: ''
+              format: 'OpenAI'
+            }
           }
         }
-      }
-      {
-        name: 'gpt-4.1-mini'
-        properties: {
-          model: {
-            name: 'moonshotai/kimi-k2:free' // Actual OpenRouter model ID
-            version: ''
-            format: 'OpenAI'
+        {
+          name: 'gpt-4.1-mini'
+          properties: {
+            model: {
+              name: 'moonshotai/kimi-k2:free' // Actual OpenRouter model ID
+              version: ''
+              format: 'OpenAI'
+            }
           }
         }
-      }
-      {
-        name: 'qwen3-4b'
-        properties: {
-          model: {
-            name: 'qwen/qwen3-4b:free' // Actual OpenRouter model ID
-            version: ''
-            format: 'OpenAI'
+        {
+          name: 'qwen3-4b'
+          properties: {
+            model: {
+              name: 'qwen/qwen3-4b:free' // Actual OpenRouter model ID
+              version: ''
+              format: 'OpenAI'
+            }
           }
         }
+      ]
+      // No api-version query parameter needed
+      inferenceAPIVersion: ''
+      targetUrl: 'https://openrouter.ai/api/v1'
+      // OpenRouter uses model name in body, not path
+      deploymentInPath: 'false'
+      authType: 'ApiKey'
+      authConfig: {
+        type: 'api_key'
+        name: 'Authorization'
+        format: 'Bearer {api_key}'
       }
-    ]
-    // No api-version query parameter needed
-    inferenceAPIVersion: ''
-    targetUrl: 'https://openrouter.ai/api/v1'
-    // OpenRouter uses model name in body, not path
-    deploymentInPath: 'false'
-    authType: 'ApiKey'
-    authConfig: {
-      type: 'api_key'
-      name: 'Authorization'
-      format: 'Bearer {api_key}'
     }
+    dependsOn: [foundry ?? fake_foundry, projects]
   }
-  dependsOn: [foundry ?? fake_foundry]
-}
+]
 
 module models_policy '../modules/policy/models-policy.bicep' = {
   scope: subscription()
@@ -195,6 +200,15 @@ module models_policy_assignment '../modules/policy/models-policy-assignment.bice
   params: {
     cognitiveServicesPolicyDefinitionId: models_policy.outputs.cognitiveServicesPolicyDefinitionId
     allowedCognitiveServicesModels: []
+  }
+}
+
+module dashboard_setup '../modules/dashboard/dashboard-setup.bicep' = {
+  name: 'dashboard-setup-deployment-${resourceToken}'
+  params: {
+    location: location
+    logAnalyticsWorkspaceName: logAnalytics.outputs.LOG_ANALYTICS_WORKSPACE_NAME
+    dashboardDisplayName: 'APIM Token Usage Dashboard for ${resourceToken}'
   }
 }
 
